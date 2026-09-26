@@ -1,6 +1,6 @@
 from turtle import position
 from screeninfo import get_monitors
-from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, click
+from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, click, locateAllOnScreen
 from time import sleep
 
 # 游戏基础单元大小
@@ -165,8 +165,23 @@ def get_click_type_path(click_type: str) -> str | None:
         'oncall': 'chrome_automation_project/diguo/generals/oncall.png',
 
         'hero_select': 'chrome_automation_project/diguo/rebel/hero_select.png',
+
+        'football_step1': 'chrome_automation_project/diguo/game/football/step1.png',
+        'football_start_game': 'chrome_automation_project/diguo/game/football/star_game.png',
+
+        '巴格达': 'chrome_automation_project/diguo/attack_city/巴格达.png',
+        '那不勒斯': 'chrome_automation_project/diguo/attack_city/那不勒斯.png',
+        '庞贝': 'chrome_automation_project/diguo/attack_city/庞贝.png',
+
+        #### 刷城
+
+        'yellow_arrow': 'chrome_automation_project/diguo/attack_city/yellow_arrows.png',
+        'red_arrow': 'chrome_automation_project/diguo/attack_city/red_arrows.png',
+        'blue_arrow': 'chrome_automation_project/diguo/attack_city/blue_arrows.png',
+        'aim_city': 'chrome_automation_project/diguo/attack_city/aim_city.png',
+        'ready_attack_city': 'chrome_automation_project/diguo/attack_city/ready_attack_city.png',
+
     }
-    
 
     if click_type not in path_mapping:
         print(f"参数错误，没有该操作类型: {click_type}")
@@ -196,6 +211,32 @@ def image_center_location(image_path:str,region=None,confidence=0.8):
     primary_x = (screen_x - primary.x) // 2
     primary_y = (screen_y - primary.y) // 2
     return primary_x, primary_y
+
+def image_center_location_all(image_path:str,region=None,confidence=0.8):
+    """
+    定位图像中心坐标（基于主显示器坐标系）
+    :param image_path: 图像路径
+    :return: (x, y) 主显示器坐标系下的中心坐标
+    :region: (x, y, width, height) 主显示器区域, 注意输入的是主显示器区域，而不是屏幕区域，所以这里需要转换一下
+    """
+    result_location = []
+    primary = PRIMARY_MONITOR_INFO
+    try:
+        locations = locateAllOnScreen(image_path, confidence=confidence,region=region)
+        if not locations:
+            #print(f"Image not found: {image_path}")
+            return None, None
+    except ImageNotFoundException:
+        #print(f"Image not found: {image_path}")
+        return None, None
+    for location in locations:
+        # 获取屏幕坐标
+        screen_x, screen_y = center(location)
+        # 转换为相对于主显示器的坐标
+        primary_x = (screen_x - primary.x) // 2
+        primary_y = (screen_y - primary.y) // 2
+        result_location.append((primary_x, primary_y))
+    return result_location
 
 
 def search_and_click_image(click_type, clicks=1, interval=0.2, duration=0.2,confidence=0.8,region=None ):
@@ -248,6 +289,119 @@ def click_image_when_exist(image_a,image_b,clicks=1, interval=0.2, duration=0.2,
         return False
 
 
+def find_yellow_arrows(region=None, yellow_threshold=25):
+    """
+    识别屏幕中的黄色箭头
+    :param region: 搜索区域 (x, y, width, height)，如果为None则搜索整个屏幕
+    :param yellow_threshold: 黄色阈值，用于调整黄色的识别范围
+    :return: 找到的黄色箭头中心坐标列表 [(x1, y1), (x2, y2), ...]
+    """
+    import pyautogui
+    from PIL import Image
+    
+    try:
+        # 获取屏幕截图
+        screenshot = pyautogui.screenshot(region=region)
+        width, height = screenshot.size
+        
+        # 定义黄色的RGB范围 - 根据游戏中的实际黄色调整
+        # 游戏中的黄色可能是偏暗或偏亮的黄色，所以我们使用更灵活的范围
+        # 黄色特征：R和G值较高且接近，B值较低
+        
+        # 存储找到的箭头位置
+        yellow_pixels = []
+        
+        # 遍历截图中的像素，寻找黄色区域
+        for x in range(0, width, 2):  # 每2个像素检查一次，提高精度
+            for y in range(0, height, 2):
+                pixel_color = screenshot.getpixel((x, y))
+                
+                # 处理RGBA颜色模式（包含透明度通道）
+                if len(pixel_color) == 4:
+                    r, g, b, a = pixel_color
+                    # 跳过透明像素
+                    if a < 200:
+                        continue
+                else:
+                    r, g, b = pixel_color
+                
+                # 检查是否为黄色
+                # 黄色特征：R和G值较高且接近，B值较低
+                if (r > 180 and g > 180 and b < 150 and  # 基本黄色条件
+                    abs(r - g) < 50):  # R和G值应该接近
+                    
+                    # 计算实际屏幕坐标
+                    actual_x = x + (region[0] if region else 0)
+                    actual_y = y + (region[1] if region else 0)
+                    
+                    # 添加到黄色像素列表
+                    yellow_pixels.append((actual_x, actual_y))
+        
+        if yellow_pixels:
+            print(f"找到 {len(yellow_pixels)} 个黄色像素点")
+            
+            # 对黄色像素进行聚类，找到箭头的中心区域
+            if len(yellow_pixels) > 10:
+                # 简单的聚类：计算所有黄色像素的平均位置
+                avg_x = sum(pos[0] for pos in yellow_pixels) // len(yellow_pixels)
+                avg_y = sum(pos[1] for pos in yellow_pixels) // len(yellow_pixels)
+                
+                # 将所有黄色像素分组，找到主要的箭头位置
+                # 这里简化处理，只返回一个中心点
+                return [(avg_x, avg_y)]
+            else:
+                # 点数较少，可能是单个箭头
+                return yellow_pixels
+        
+        return []
+        
+    except Exception as e:
+        print(f"识别黄色箭头时出错: {e}")
+        return []
+
+
+def search_and_click_yellow_arrow(clicks=1, interval=0.2, duration=0.2, region=None):
+    """
+    搜索黄色箭头并点击
+    :param clicks: 点击次数
+    :param interval: 点击间隔
+    :param duration: 点击持续时间
+    :param region: 搜索区域
+    :return: 1表示成功，0表示失败
+    """
+    arrow_positions = find_yellow_arrows(region=region)
+    
+    if arrow_positions:
+        # 点击第一个找到的箭头
+        x, y = arrow_positions[0]
+        click(x, y, button='left', clicks=clicks, interval=interval, duration=duration)
+        return 1
+    else:
+        print("未找到黄色箭头")
+        return 0
+
+
+def move_to_yellow_arrow(region=None, duration=0.5):
+    """
+    移动鼠标到黄色箭头位置
+    :param region: 搜索区域
+    :param duration: 移动持续时间（秒）
+    :return: 1表示成功，0表示失败
+    """
+    from pyautogui import moveTo
+    
+    arrow_positions = find_yellow_arrows(region=region)
+    
+    if arrow_positions:
+        # 移动到第一个找到的箭头位置
+        x, y = arrow_positions[0]
+        moveTo(x, y, duration=duration)
+        print(f"鼠标已移动到黄色箭头位置: ({x}, {y})")
+        return 1
+    else:
+        print("未找到黄色箭头，无法移动鼠标")
+        return 0
+
 
 if __name__ == "__main__":
     # 测试代码
@@ -255,10 +409,11 @@ if __name__ == "__main__":
     #print("主显示器中心坐标:", SCREEN_CENTER_INFO)
     # print("游戏中心坐标:", GAME_CENTER_LOCATION)
     # print("完成")
-    # print( image_center_location( get_click_type_path('300_attacked'),confidence=0.7 ))
-    # search_and_click_image(click_type='300_attacked',clicks=1, interval=0.2, duration=0.2,confidence=0.7)
 
+    loc = image_center_location_all(get_click_type_path('aim_city'),confidence=0.7 )
+    print(loc)
 
-    click_image_when_exist(image_a='dock',image_b='dock')
-
-    
+    for item in loc:
+        print(item)
+        pyautogui.moveTo(x=item[0],y=item[1])
+        sleep(1)

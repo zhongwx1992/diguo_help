@@ -1,4 +1,5 @@
 
+from math import fabs
 from time import sleep
 import pyautogui
 from pyautogui import ImageNotFoundException
@@ -10,6 +11,7 @@ from change_map import return_to_holy_place,is_in_holy_place
 from city_function import get_online_reward,rebuild_main_city,get_dock_order
 from pynput import keyboard
 from datetime import datetime
+from login_service import login_staus,return_login_exit
 
 
 
@@ -307,10 +309,8 @@ def is_back_home():
         search_and_click_image(click_type='back_home', clicks=1, interval=0.2, duration=0.2)
         return True
 
-
+# 攻击叛军选择将领坐标
 GENERALS_SEARCH = [(520,369,310,70), (520,369 + 71 * 1,310,70), (520,369 + 71 * 2,310,70), (520,369 + 71 * 3,310,70)]
-
-
 
 def choice_attack_genelral_new(num=1):
     """
@@ -337,7 +337,6 @@ def choice_attack_genelral_new(num=1):
 
     while all_rest == []:
         # 检测将领是否就绪
-
         #####  打开页面之后检测是否有选中将领，不管有没有都取消选中
         is_select = image_center_location(select_path)
         if is_select != (None, None):
@@ -362,7 +361,7 @@ def choice_attack_genelral_new(num=1):
     pyautogui.click(x=all_rest[0],y=all_rest[1],duration=0.2, clicks=1, interval=0.2)
     return True
 
-
+# 将领补兵坐标
 GENERALS_RELOAD = [(515,405,325,75), (515,480,325,75), (515,550,325,75), (515,625,325,75)]
 def reload_rebel(num):
     """
@@ -376,19 +375,11 @@ def reload_rebel(num):
 
     # 四个将领的搜索区域，目前只给一个
     search_and_click_image(click_type='hero_select', clicks=2, interval=0.2, duration=0.2)
-    # for index, a in enumerate(GENERALS_RELOAD[0:num]):
-    #     print('region', a)    
-    #     search_and_click_image(click_type='reload',region=primary_region_to_screen_region(a,PRIMARY_MONITOR_INFO))
-    #     print('reload location : ', image_center_location( image_path=get_click_type_path('reload') , region=primary_region_to_screen_region(a,PRIMARY_MONITOR_INFO) ) )
-    #     print('给第',index + 1,'个将领补兵')
-    #     sleep(1)
     for reload_location in reload_list[0:num]:
         pyautogui.click(x=reload_location[0], y=reload_location[1],duration=0.2, clicks=1, interval=0.2)
-
     # 退出补兵将领页面
     while image_center_location( image_path=get_click_type_path('oncall') ) != (None, None):
         search_and_click_image(click_type='backspace', clicks=1, interval=0.2, duration=0.2)
-
     return 1
 
 
@@ -464,6 +455,8 @@ def cycle_attack(send_rebel_list,num):
     : num 代表打的次数
     """
 
+    return_login_exit()
+
     rebel_list = sorted(send_rebel_list, reverse=True)
     #print("当前需要清剿的叛军等级：",rebel_list)
 
@@ -487,41 +480,30 @@ def cycle_attack(send_rebel_list,num):
         if is_click_get_resource:
             #print("点击到了资源采集，取消攻击")
             search_and_click_image(click_type='cancel_get_resource', clicks=1, interval=0.2, duration=0.2)
-
         # 增加异常处理 ，退出攻打叛军页面
         search_and_click_image(click_type='exit', clicks=1, interval=0.2, duration=0.2)
-
-
         drag_screen(direction=DIRECTION_LIST[DIRECTION_LIST_INDEX % 8])    
-
         global ATTACKED_LOCATIONS
         ATTACKED_LOCATIONS=[]
-
         if rebuild_and_back_to_holy_place(active=True):
             reload_rebel(num)
-
         sleep(1)
         # 拖动鼠标之后上一个叛军还是会被选中
         #移动后需要 判断是否还在圣域
         is_back_home()  
-
     else:
         attack_rebel(rebel_locaiton,rebel_level,num)
         
 
-
-
-
-
-def main(attack_num,send_rebel_list=[26,27],num=4):
+def main(attack_num,send_rebel_list=[26,27],num=4,is_active=False):
     """
     Purpose: test the python file
     """
     
-    # get_dock_order()
+    # get_dock_order(is_active)
     pre_order_time = datetime.now()
 
-    reload_rebel(num)    
+    # reload_rebel(num)    
     while REBEL_ATTACKED_NUMBER <= attack_num:
         #  判断是否在世界界面
         if image_center_location(get_click_type_path('to_world')) != (None, None):
@@ -529,10 +511,13 @@ def main(attack_num,send_rebel_list=[26,27],num=4):
             sleep(2)
         # 重建城池
         #rebuild_main_city()
-        if rebuild_main_city():
-            reload_rebel(num)
+        # TODO：重构reload函数
+        # if rebuild_main_city():
+        #     reload_rebel(num)
         # 回工作地点 回圣域
         if not is_in_holy_place():
+            return_login_exit()
+            sleep(1)
             print("不在圣域") 
             sleep(1)
             # 这里回圣域的功能，出现被重建卡住的情况
@@ -541,32 +526,37 @@ def main(attack_num,send_rebel_list=[26,27],num=4):
         cycle_attack(send_rebel_list=send_rebel_list,num=num)
         print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击 ",REBEL_ATTACKED_NUMBER," 个叛军")
 
-        # time_diff = datetime.now() - pre_order_time  # 得到timedelta对象
-        # total_seconds = time_diff.total_seconds()
-        # # 设置30分钟跑一次船
-        # if  total_seconds >= 20 * 60:
-        #     get_dock_order()
-        #     pre_order_time = datetime.now()
-        #     global DIRECTION_LIST_INDEX
-        #     DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
+        # sleep(10)
+
+        time_diff = datetime.now() - pre_order_time  # 得到timedelta对象
+        total_seconds = time_diff.total_seconds()
+        # 设置20分钟跑一次船
+        if  total_seconds >= 30 * 60:
+            get_dock_order(is_active)
+            pre_order_time = datetime.now()
+            global DIRECTION_LIST_INDEX
+            DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
 
 
 
-def ship():
-    while True:
-        get_dock_order()
-        sleep(120)
+
 
 if __name__ == '__main__':
     #main(500,[26,27],4)
     #get_online_reward()
     # 178
     print("程序开始运行")
-    sleep(5)
+    sleep(10)
     #哥德
     #main(200,[22],1)
     # 红豆生南国 24 可以三个刷
-    #main(40,[25],3)
-    main(200,[25,26,27],3)
+    #main(350,[28,29],2,False)
+    #main(350,[24,25,26,27,28,29],3,False)
+    
+    # 有
+    #main(350,[28,29],2,False)
+    
+    main(350,[28,29],3,False)
+
 
     # ship()
