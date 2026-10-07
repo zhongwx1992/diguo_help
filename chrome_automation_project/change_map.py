@@ -47,6 +47,7 @@ def random_move():
     search_and_click_image(click_type='random_move',clicks=1, interval=0.2, duration=0.2)
     # 使用随机迁城
     search_and_click_image(click_type='random_move_use',clicks=1, interval=0.2, duration=0.2)    
+    sleep(1)
     # 这里需要加个容错，如果背包页面还打开，需要关闭一下背包
     search_and_click_image(click_type='backspace',clicks=1, interval=0.2, duration=0.2)    
     return True
@@ -69,7 +70,7 @@ def return_to_holy_place(active=True):
             break
         random_move()
         print("回到圣域中...")
-        sleep(1)
+        sleep(2)
 
     if not active:
         print("飞圣域功能未打开")
@@ -100,7 +101,7 @@ if __name__ == "__main__":
     # sleep(2)
 
     print("是否在圣域：", is_in_holy_place())
-    sleep(2)
+    sleep(1)
     return_to_holy_place(active=True)
     
     #random_move()

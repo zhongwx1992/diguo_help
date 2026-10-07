@@ -430,14 +430,13 @@ def attack_rebel(coords,level,num):
         # 确认攻击
         search_and_click_image(click_type='rel_attack', clicks=1, interval=0.2, duration=0.2)
 
-        global REBEL_ATTACKED_NUMBER
-        REBEL_ATTACKED_NUMBER = REBEL_ATTACKED_NUMBER + 1
-
         if is_attack_page_alive():
             print("攻击错误，取消攻击")
             search_and_click_image(click_type='reble_info_cancel', clicks=1, interval=0.2, duration=0.2)
             return 0
 
+        global REBEL_ATTACKED_NUMBER
+        REBEL_ATTACKED_NUMBER = REBEL_ATTACKED_NUMBER + 1
         return 1
     else:
         # 找错了，要取消，点击取消按钮
@@ -495,47 +494,105 @@ def cycle_attack(send_rebel_list,num):
         attack_rebel(rebel_locaiton,rebel_level,num)
         
 
-def main(attack_num,send_rebel_list=[26,27],num=4,is_active=False):
+
+def continuous_ship(interval=120):
     """
-    Purpose: test the python file
-    """
+    持续跑船 - 循环执行船坞运输，直到检测到登录异常（有人登录/Token过期）自动退出
     
-    # get_dock_order(is_active)
-    pre_order_time = datetime.now()
-
-    # reload_rebel(num)    
-    while REBEL_ATTACKED_NUMBER <= attack_num:
-        #  判断是否在世界界面
-        if image_center_location(get_click_type_path('to_world')) != (None, None):
-            search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
-            sleep(2)
-        # 重建城池
-        #rebuild_main_city()
-        # TODO：重构reload函数
-        # if rebuild_main_city():
-        #     reload_rebel(num)
-        # 回工作地点 回圣域
-        if not is_in_holy_place():
+    :param interval: 两次跑船之间的间隔秒数，默认 120 秒（2分钟）
+    """
+    print(f"【持续跑船】启动，间隔 {interval} 秒，按 Ctrl+C 或检测到登录异常时退出")
+    
+    try:
+        while True:
+            # 每次循环前先检测登录状态（有人登录就 sys.exit(0)）
             return_login_exit()
-            sleep(1)
-            print("不在圣域") 
-            sleep(1)
-            # 这里回圣域的功能，出现被重建卡住的情况
-            return_to_holy_place(active=True)        
-        # 攻打叛军
-        cycle_attack(send_rebel_list=send_rebel_list,num=num)
-        print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击 ",REBEL_ATTACKED_NUMBER," 个叛军")
+            rebuild_and_back_to_holy_place(active=True)
+            
+            print(f"【持续跑船】{datetime.now().strftime('%H:%M:%S')} 开始执行船坞运输...")
+            try:
+                result = get_dock_order(True)
+                print(f"【持续跑船】船坞运输完成 (result={result})，等待 {interval} 秒后继续")
+            except Exception as e:
+                print(f"【持续跑船】执行出错: {e}")
+            
+            sleep(interval)
+    except KeyboardInterrupt:
+        print("【持续跑船】已手动停止 (Ctrl+C)")
 
-        # sleep(10)
 
-        time_diff = datetime.now() - pre_order_time  # 得到timedelta对象
-        total_seconds = time_diff.total_seconds()
-        # 设置20分钟跑一次船
-        if  total_seconds >= 30 * 60:
-            get_dock_order(is_active)
-            pre_order_time = datetime.now()
-            global DIRECTION_LIST_INDEX
-            DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
+def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200):
+    """
+    打叛军 + 定时跑船，叛军打满后调用 continuous_ship 继续纯跑船
+    
+    :param attack_num: 目标攻击叛军总数，<=0 表示不打叛军直接跑船
+    :param send_rebel_list: 叛军等级列表
+    :param num: 将领数量
+    :param is_active: 是否激活跑船功能
+    :param ship_interval: 叛军打满后纯跑船的间隔秒数，默认 1800（30分钟）
+    """
+    global REBEL_ATTACKED_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
+
+    # ---- 每次调用都重置全局状态，防止重入时计数残留 ----
+    REBEL_ATTACKED_NUMBER = 0
+    ATTACKED_LOCATIONS = []
+    DRAG_IGNORE_POSITION = (0,0)
+    DIRECTION_LIST_INDEX = random.randint(0, 7)
+
+    print(f"【main】启动：叛军目标 {attack_num}，等级 {send_rebel_list}，将领 {num}，跑船 {'开启' if is_active else '关闭'}")
+
+    try:
+        # ---------- 容错：attack_num <= 0 直接纯跑船 ----------
+        if attack_num <= 0:
+            print(f"【main】attack_num={attack_num}，跳过打叛军，直接进入纯跑船模式")
+            if not is_active:
+                print("【main】跑船未开启，程序结束")
+                return
+            continuous_ship(interval=ship_interval)
+            return
+
+        pre_order_time = datetime.now()
+
+        # ---------- 阶段一：打叛军 + 定时跑船 ----------
+        while REBEL_ATTACKED_NUMBER < attack_num:
+            return_login_exit()
+
+            # 判断是否在世界界面
+            if image_center_location(get_click_type_path('to_world')) != (None, None):
+                search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
+                sleep(2)
+            # 回圣域
+            if not is_in_holy_place():
+                sleep(1)
+                print("不在圣域，返回中...") 
+                sleep(1)
+                return_to_holy_place(active=True)        
+            # 攻打叛军
+            cycle_attack(send_rebel_list=send_rebel_list, num=num)
+            print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击", REBEL_ATTACKED_NUMBER, "/", attack_num, "个叛军")
+
+            # 定时跑船（打叛军阶段每 20 分钟跑一次）
+            if is_active:
+                time_diff = datetime.now() - pre_order_time
+                if time_diff.total_seconds() >= 20 * 60:
+                    print(f"【main】定时跑船触发...")
+                    try:
+                        get_dock_order(True)
+                    except Exception as e:
+                        print(f"【main】跑船出错: {e}")
+                    pre_order_time = datetime.now()
+                    DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
+
+        # ---------- 阶段二：叛军打满 → 复用 continuous_ship ----------
+        print(f"【main】✓ 已打满 {attack_num} 个叛军", end="")
+        if is_active:
+            print(f"，切换为纯跑船模式（间隔 {ship_interval} 秒）")
+            continuous_ship(interval=ship_interval)
+        else:
+            print("，跑船未开启，程序结束")
+    except KeyboardInterrupt:
+        print("【main】已手动停止 (Ctrl+C)")
+
 
 
 
@@ -546,7 +603,7 @@ if __name__ == '__main__':
     #get_online_reward()
     # 178
     print("程序开始运行")
-    sleep(10)
+    # sleep(10)
     #哥德
     #main(200,[22],1)
     # 红豆生南国 24 可以三个刷
@@ -554,9 +611,9 @@ if __name__ == '__main__':
     #main(350,[24,25,26,27,28,29],3,False)
     
     # 有
-    #main(350,[28,29],2,False)
-    
-    main(350,[28,29],3,False)
+    main(158,[28,29],2,True)
+    #main(350,[27,28,29],4,True)
+    #main(230,[28,29],4,False,2000)
 
-
-    # ship()
+    # 新函数 — 持续跑船（带登录检测，自动退出）
+    # continuous_ship(interval=120)

@@ -82,6 +82,7 @@ def get_dock_order(is_active=False):
             # 橙色订单坐标
             pyautogui.click(x=715,y=399,clicks=2)
             search_and_click_image(click_type='dock_get_order_confirm',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+            print("获取订单成功")
         else:
             center_x, center_y = GAME_CENTER_LOCATION['location']
             pyautogui.moveTo(center_x,center_y, duration=0.2)
@@ -134,5 +135,6 @@ if __name__ == "__main__":
     #get_online_reward()
     #rebuild_city()
     # rebuild_main_city()
-    sleep(10)
+    # sleep(10)
     # get_dock_order(TRUE)
+    ship()
