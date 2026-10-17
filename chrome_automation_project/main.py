@@ -8,7 +8,7 @@ import random
 from package.screen import PRIMARY_MONITOR_INFO, GAME_CENTER_LOCATION, get_ingore_region,calculate_distance,image_center_location, search_and_click_image,get_click_type_path
 from package.region import primary_region_to_screen_region
 from change_map import return_to_holy_place,is_in_holy_place
-from city_function import get_online_reward,rebuild_main_city,get_dock_order
+from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors
 from pynput import keyboard
 from datetime import datetime
 from login_service import login_staus,return_login_exit
@@ -542,11 +542,15 @@ def continuous_ship_with_reward(interval=1200):
             except Exception as e:
                 print(f"【跑船+奖励】跑船出错: {e}")
 
-            # 领在线奖励
+            # 领在线奖励 + 荣誉
             try:
                 get_online_reward()
             except Exception as e:
                 print(f"【跑船+奖励】领取在线奖励出错: {e}")
+            try:
+                get_free_honors()
+            except Exception as e:
+                print(f"【跑船+奖励】领取荣誉出错: {e}")
 
             print(f"【跑船+奖励】等待 {interval} 秒后继续下一轮")
             sleep(interval)
@@ -579,11 +583,15 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
         if attack_num <= 0:
             print(f"【main】attack_num={attack_num}，跳过打叛军，直接进入纯跑船模式")
             if not is_active:
-                # 跑船关闭也领一次在线奖励
+                # 跑船关闭也领一次在线奖励 + 荣誉
                 try:
                     get_online_reward()
                 except Exception as e:
                     print(f"【main】领取在线奖励出错: {e}")
+                try:
+                    get_free_honors()
+                except Exception as e:
+                    print(f"【main】领取荣誉出错: {e}")
                 print("【main】跑船未开启，程序结束")
                 return
             continuous_ship_with_reward(interval=ship_interval)
@@ -621,11 +629,15 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
                     pre_order_time = datetime.now()
                     DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
 
-            # 🔴 在线奖励独立于跑船开关，每次循环都尝试领
+            # 🔴 在线奖励 + 荣誉独立于跑船开关，每次循环都尝试领
             try:
                 get_online_reward()
             except Exception as e:
                 print(f"【main】领取在线奖励出错: {e}")
+            try:
+                get_free_honors()
+            except Exception as e:
+                print(f"【main】领取荣誉出错: {e}")
 
         # ---------- 阶段二：叛军打满 → 持续跑船+奖励 ----------
         print(f"【main】✓ 已打满 {attack_num} 个叛军", end="")
@@ -638,6 +650,10 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
                 get_online_reward()
             except Exception as e:
                 print(f"【main】领取在线奖励出错: {e}")
+            try:
+                get_free_honors()
+            except Exception as e:
+                print(f"【main】领取荣誉出错: {e}")
             print("，跑船未开启，程序结束")
     except KeyboardInterrupt:
         print("【main】已手动停止 (Ctrl+C)")

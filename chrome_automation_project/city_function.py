@@ -52,7 +52,9 @@ def get_online_reward():
         online_reward_main_page_position = image_center_location(get_click_type_path('online_reward_main_page'))
         sleep(1)
 
+    sleep(1)
     search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
     return True
 
 
@@ -69,6 +71,55 @@ def rebuild_city():
     search_and_click_image(click_type='rebuild_city_confirm',clicks=1, interval=0.2, duration=0.2)
 
 
+def get_free_honors():
+    """
+    Purpose: 获取免费荣誉
+    """
+    # 'back_space'
+    # 'book_shop'
+    # 'book_tag'
+    # 'free_get'
+    # 'honors_tag'
+    search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+
+    center_x, center_y = GAME_CENTER_LOCATION['location']
+    # 移动鼠标到屏幕中心
+    pyautogui.moveTo(center_x,center_y, duration=0.2)
+    pyautogui.mouseDown(button='left')
+    pyautogui.dragRel(300, 150, duration=0.5, button='left')
+    pyautogui.mouseUp(button='left')
+    sleep(2)
+
+    library_location = image_center_location( get_click_type_path('library'),confidence=0.8)
+    if library_location == (None, None):
+        print("未找到图书馆")
+        ## 增加退出城市的功能
+        search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+        return False
+    search_and_click_image(click_type='library',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='book_shop',clicks=1, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='buy_book',clicks=1, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='free_get',clicks=1, interval=0.2, duration=0.2)
+    sleep(1)
+    # 增加广告免费刷新逻辑
+    if image_center_location( get_click_type_path('free_ad_refresh'),confidence=0.8) != (None, None):
+        search_and_click_image(click_type='free_ad_refresh',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        search_and_click_image(click_type='free_get',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+
+    search_and_click_image(click_type='back_space',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='back_space',clicks=2, interval=0.2, duration=0.2)
+    sleep(2)
+    search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+    return True
+
+
 def get_dock_order(is_active=False):
     """
     Purpose: 跑船
@@ -83,7 +134,7 @@ def get_dock_order(is_active=False):
     sleep(1)
     rebuild_city()
     find_dock = False
-    max_dock_retry = 4  # 🔴 限制最多拖动寻找 4 次
+    max_dock_retry = 3  # 🔴 限制最多拖动寻找 3 次
     dock_retry = 0
     while not find_dock and dock_retry < max_dock_retry:
         dock_location = image_center_location( get_click_type_path('dock'),confidence=0.8)
@@ -117,6 +168,9 @@ def get_dock_order(is_active=False):
 
     if not find_dock:
         print(f"已拖动寻找 {max_dock_retry} 次仍未找到船坞，退出")
+        search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+        center_x, center_y = GAME_CENTER_LOCATION['location']
+        pyautogui.moveTo(center_x,center_y, duration=0.2)
         return 0
 
     search_and_click_image(click_type='dock',clicks=2, interval=0.2, duration=0.2)
@@ -187,5 +241,5 @@ if __name__ == "__main__":
     # rebuild_main_city()
     # sleep(10)
     # get_dock_order(TRUE)
-    ship()
+    get_free_honors()
     #click_image_when_exist('online_reward_main_page','exit_online_reward',clicks=2, interval=0.2, duration=0.2,confidence=0.8)

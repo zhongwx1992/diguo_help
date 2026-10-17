@@ -191,9 +191,18 @@ def get_click_type_path(click_type: str) -> str | None:
         'get_online_reward': 'chrome_automation_project/diguo/reward/online/get_online_reward.png',
         'exit_online_reward': 'chrome_automation_project/diguo/reward/online/exit_online_reward.png',
         'online_reward_main_page': 'chrome_automation_project/diguo/reward/online/online_reward_main_page.png',
-
         'double_reward': 'chrome_automation_project/diguo/reward/online/double_reward.png',
         'normal_reward': 'chrome_automation_project/diguo/reward/online/normal_reward.png',
+
+        ### 领取荣誉
+        'back_space': 'chrome_automation_project/diguo/reward/library/back_space.png',
+        'book_shop': 'chrome_automation_project/diguo/reward/library/book_shop.png',
+        'book_tag': 'chrome_automation_project/diguo/reward/library/book_tag.png',
+        'free_get': 'chrome_automation_project/diguo/reward/library/free_get.png',
+        'honors_tag': 'chrome_automation_project/diguo/reward/library/honors_tag.png',
+        'library': 'chrome_automation_project/diguo/reward/library/library.png',
+        'free_ad_refresh': 'chrome_automation_project/diguo/reward/library/free_ad_refresh.png',
+        'buy_book': 'chrome_automation_project/diguo/reward/library/buy_book.png',
     }
 
     if click_type not in path_mapping:
@@ -266,7 +275,7 @@ def search_and_click_image(click_type, clicks=1, interval=0.2, duration=0.2,conf
         
     x, y = image_center_location(image_path=image_path,confidence=confidence,region=region)
     if x is None or y is None:
-        #print(f"未找到图像: {image_path}")
+        print(f"未找到图像: {click_type}")
         return 0
     #moveTo(x, y, 0.1)
     click(x, y, button='left', clicks=clicks, interval=interval, duration=duration)
