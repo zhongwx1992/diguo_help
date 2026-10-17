@@ -4,7 +4,8 @@ from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, cl
 from time import sleep
 
 # 游戏基础单元大小 根据屏幕分辨率计算
-# 看起来是横向9个单元，竖向 中心向下 4.5 向上 3.5 个单元
+# 横向 9个单元 横向在中间，左边4个单元，右边也是4个，
+# 竖向 9个单元，下面4.5个单元，上面3.5 个单元
 #GAME_UNIT_SIZE = (140,70)
 GAME_UNIT_SIZE = (124,80)
 
@@ -203,6 +204,23 @@ def get_click_type_path(click_type: str) -> str | None:
         'library': 'chrome_automation_project/diguo/reward/library/library.png',
         'free_ad_refresh': 'chrome_automation_project/diguo/reward/library/free_ad_refresh.png',
         'buy_book': 'chrome_automation_project/diguo/reward/library/buy_book.png',
+
+        ## 才艺学习
+        'palace': 'chrome_automation_project/diguo/reward/palace/palace.png',
+        'art': 'chrome_automation_project/diguo/reward/palace/art.png',
+        'beauty': 'chrome_automation_project/diguo/reward/palace/beauty.png',
+        'enter_study': 'chrome_automation_project/diguo/reward/palace/enter.png',
+        'get_art_result': 'chrome_automation_project/diguo/reward/palace/get.png',
+        'study': 'chrome_automation_project/diguo/reward/palace/study.png',
+        'choice_beauty': 'chrome_automation_project/diguo/reward/palace/choice.png',
+        'art_main_page': 'chrome_automation_project/diguo/reward/palace/art_main_page.png',
+        'art_back_space': 'chrome_automation_project/diguo/reward/palace/art_back_space.png',
+        'last_study': 'chrome_automation_project/diguo/reward/palace/last_study.png',
+        'exit_study': 'chrome_automation_project/diguo/reward/palace/exit_study.png',
+
+        'get_resource': 'chrome_automation_project/diguo/get_resource/get_resource.png',
+        'rebel_used_up': 'chrome_automation_project/diguo/rebel/rebel_used_up.png',
+        
     }
 
     if click_type not in path_mapping:
@@ -234,12 +252,51 @@ def image_center_location(image_path:str,region=None,confidence=0.8):
     primary_y = (screen_y - primary.y) // 2
     return primary_x, primary_y
 
-def image_center_location_all(image_path:str,region=None,confidence=0.8):
+def cluster_positions(positions, distance_threshold=30):
     """
-    定位图像中心坐标（基于主显示器坐标系）
+    把距离过近的坐标聚类合并（模板匹配重复识别去重）
+    
+    :param positions: [(x,y), (x,y), ...]
+    :param distance_threshold: 聚类半径（像素），同一真实按钮的重复匹配通常在 10px 内
+    :return: 去重后的 [(avg_x, avg_y), ...]
+    :note: 返回的坐标顺序与输入保持一致（按屏幕从上到下、从左到右的扫描顺序）
+    """
+    if not positions:
+        return []
+
+    clusters = []  # 每个元素: [(x,y), ...]
+
+    for pos in positions:
+        matched = False
+        for cluster in clusters:
+            # 用簇的第一个点作为代表计算距离
+            ref = cluster[0]
+            if abs(pos[0] - ref[0]) <= distance_threshold and abs(pos[1] - ref[1]) <= distance_threshold:
+                cluster.append(pos)
+                matched = True
+                break
+        if not matched:
+            clusters.append([pos])
+
+    # 每个簇取平均
+    return [
+        (int(sum(c[0] for c in cluster) / len(cluster)),
+         int(sum(c[1] for c in cluster) / len(cluster)))
+        for cluster in clusters
+    ]
+
+
+def image_center_location_all(image_path:str,region=None,confidence=0.8,cluster=True,distance_threshold=30):
+    """
+    定位图像中心坐标（基于主显示器坐标系），自动聚类去重
     :param image_path: 图像路径
-    :return: (x, y) 主显示器坐标系下的中心坐标
-    :region: (x, y, width, height) 主显示器区域, 注意输入的是主显示器区域，而不是屏幕区域，所以这里需要转换一下
+    :param region: (x, y, width, height) 主显示器区域
+    :param confidence: 匹配置信度
+    :param cluster: 是否自动聚类去重（默认 True）
+    :param distance_threshold: 聚类半径（像素）
+    :return: [(x,y), ...] 去重后的坐标列表；未找到时返回 (None, None)
+    :note: 返回坐标**有序**，按 pyautogui 扫描顺序排列（屏幕从上到下、从左到右，行优先）
+           聚类后仍保持该顺序（每个簇的首个点决定簇的排名位置）
     """
     result_location = []
     primary = PRIMARY_MONITOR_INFO
@@ -258,6 +315,10 @@ def image_center_location_all(image_path:str,region=None,confidence=0.8):
         primary_x = (screen_x - primary.x) // 2
         primary_y = (screen_y - primary.y) // 2
         result_location.append((primary_x, primary_y))
+
+    if cluster:
+        result_location = cluster_positions(result_location, distance_threshold)
+
     return result_location
 
 
@@ -320,3 +381,4 @@ if __name__ == "__main__":
     print("完成")
     # click_image_when_exist('online_reward','online_reward',clicks=2, interval=0.2, duration=0.2,confidence=0.8)
 
+    print(get_click_type_path('rebel_used_up'))

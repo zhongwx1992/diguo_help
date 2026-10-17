@@ -1,8 +1,9 @@
 
 from pickle import TRUE
+from re import S
 from time import sleep
 import pyautogui
-from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION,click_image_when_exist
+from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION,image_center_location_all
 from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, click, locateAllOnScreen
 
 
@@ -119,7 +120,123 @@ def get_free_honors():
     search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
     return True
 
+def get_study_art(is_active=False, art_type=['琴室']):
+    """
+    才艺学习 - 支持一次学习多个才艺类型
 
+    :param is_active: 是否启用该函数，False 时直接跳过不执行
+    :param art_type: str 或 list[str]，可选值：琴室 棋室 书房 画廊
+                     例：'琴室' 或 ['琴室', '棋室'] 或 ['琴室','棋室','书房','画廊']
+    :return: True=成功 False=失败/未启用
+    """
+    if not is_active:
+        print("【才艺学习】is_active=False，跳过")
+        return False
+
+    ART_TYPE_LIST = ['琴室', '棋室', '书房', '画廊']
+
+    # 兼容单字符串输入，统一转 list
+    if isinstance(art_type, str):
+        art_types = [art_type]
+    else:
+        art_types = list(art_type)
+
+    # 校验所有输入类型是否合法
+    invalid = [t for t in art_types if t not in ART_TYPE_LIST]
+    if invalid:
+        print(f"无效的才艺类型: {invalid}，可选值: {ART_TYPE_LIST}")
+        return False
+
+    search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    rebuild_city()
+    sleep(1)
+    search_and_click_image(click_type='palace',clicks=2, interval=0.2, duration=0.2)
+    sleep(2)
+    # 进入才艺坊
+    search_and_click_image(click_type='art',clicks=1, interval=0.2, duration=0.2)
+    sleep(1)
+
+    # 确定已经进入才艺访
+    art_main_page_position = image_center_location(get_click_type_path('art_main_page'))
+    if art_main_page_position[0] is None or art_main_page_position[1] is None:
+        print("未进入才艺坊")
+        search_and_click_image(click_type='art_back_space',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        return False
+
+    center_x, center_y = GAME_CENTER_LOCATION['location']
+    # 移动鼠标到屏幕中心
+    pyautogui.moveTo(center_x,center_y, duration=0.2)
+    pyautogui.mouseDown(button='left')
+    pyautogui.dragRel(0, -150, duration=0.5, button='left')
+    pyautogui.mouseUp(button='left')
+    sleep(1)
+
+    ## 先点击领取， 可能会有多个领取按钮，需要判断是否有多个领取按钮
+    get_art_result_position = image_center_location(get_click_type_path('get_art_result'))
+    while get_art_result_position[0] is not None and get_art_result_position[1] is not None:
+        moveTo(get_art_result_position[0], get_art_result_position[1], 0.1)
+        click(get_art_result_position[0], get_art_result_position[1], button='left', clicks=2, interval=0.2, duration=0.2)
+        #search_and_click_image(click_type='get_art_result',clicks=1, interval=0.2, duration=0.2)
+        print("领取成功")
+        # 需要点空地址，确认领取 
+        pyautogui.click(x=GAME_CENTER_LOCATION['location'][0]+200, y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
+        sleep(1)
+        get_art_result_position = image_center_location(get_click_type_path('get_art_result'))
+
+    ### 才艺学习按钮硬编码参考坐标（x 相同，按 y 从上到下）
+    STUDY_BUTTON_POSITIONS = {
+        '琴室': (768, 313),
+        '棋室': (768, 469),
+        '书房': (768, 624),
+        '画廊': (768, 780),
+    }
+    Y_TOLERANCE = 80  # y 轴容差像素，用于判断某个房间的按钮是否可见
+
+    # 获取屏幕上当前可见的所有 study 按钮（去重后）
+    visible_locations = image_center_location_all(get_click_type_path('study')) or []
+    if visible_locations == (None, None):
+        visible_locations = []
+
+    print(f"屏幕上检测到 {len(visible_locations)} 个可见 study 按钮: {visible_locations}")
+
+    # 逐个学习用户指定的才艺
+    for art in art_types:
+        ref_x, ref_y = STUDY_BUTTON_POSITIONS[art]
+
+        # 匹配：在可见按钮中找 y 坐标落在该房间参考范围内的
+        matched_pos = None
+        for (vx, vy) in visible_locations:
+            if abs(vy - ref_y) <= Y_TOLERANCE:
+                matched_pos = (vx, vy)
+                break
+
+        if matched_pos is None:
+            print(f"⚠️ {art} 按钮未找到（可能正在学习中），跳过")
+            continue
+
+        print(f"开始学习 {art}，坐标 {matched_pos}")
+        moveTo(matched_pos[0], matched_pos[1], 0.1)
+        click(matched_pos[0], matched_pos[1], button='left', clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        # 选择快速选择
+        search_and_click_image(click_type='choice_beauty', clicks=1, interval=0.2, duration=0.2)
+        sleep(1)
+        # 确认学习
+        search_and_click_image(click_type='last_study', clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        # 退出学习界面
+        search_and_click_image(click_type='exit_study', clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        print(f"✓ 已完成学习: {art}")
+        
+    search_and_click_image(click_type='art_back_space', clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    return True
+    
 def get_dock_order(is_active=False):
     """
     Purpose: 跑船
@@ -241,5 +358,7 @@ if __name__ == "__main__":
     # rebuild_main_city()
     # sleep(10)
     # get_dock_order(TRUE)
-    get_free_honors()
-    #click_image_when_exist('online_reward_main_page','exit_online_reward',clicks=2, interval=0.2, duration=0.2,confidence=0.8)
+    get_study_art(['琴室','棋室','书房','画廊'])
+
+    # get_study_art(['书房'])
+    

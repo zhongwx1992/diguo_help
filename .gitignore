@@ -1,0 +1,18 @@
+# 虚拟环境（仅根目录）
+/diguo/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# 模型缓存
+.paddlex/
+.paddleocr/

@@ -8,7 +8,7 @@ import random
 from package.screen import PRIMARY_MONITOR_INFO, GAME_CENTER_LOCATION, get_ingore_region,calculate_distance,image_center_location, search_and_click_image,get_click_type_path
 from package.region import primary_region_to_screen_region
 from change_map import return_to_holy_place,is_in_holy_place
-from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors
+from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art
 from pynput import keyboard
 from datetime import datetime
 from login_service import login_staus,return_login_exit
@@ -32,6 +32,7 @@ DIRECTION_LIST_INDEX = random.randint(0, 7)
 ATTACKED_LOCATIONS=[]
 
 REBEL_ATTACKED_NUMBER = 0
+REBEL_ATTACKED_CANCAL_NUMBER = 0
 
 def rebuild_and_back_to_holy_place(active=True):
     """
@@ -429,14 +430,22 @@ def attack_rebel(coords,level,num):
 
         # 确认攻击
         search_and_click_image(click_type='rel_attack', clicks=1, interval=0.2, duration=0.2)
+        global REBEL_ATTACKED_NUMBER, REBEL_ATTACKED_CANCAL_NUMBER
 
         if is_attack_page_alive():
             print("攻击错误，取消攻击")
+            # is_click_rebel_used_up = image_center_location(get_click_type_path('rebel_used_up'),confidence=0.9) != (None, None)        
+            # if is_click_rebel_used_up:
+            #     print("点击到了叛军已用完300额度")
+            #     REBEL_ATTACKED_NUMBER = 300
             search_and_click_image(click_type='reble_info_cancel', clicks=1, interval=0.2, duration=0.2)
+            REBEL_ATTACKED_CANCAL_NUMBER += 1
+            if REBEL_ATTACKED_CANCAL_NUMBER >= 20:
+                REBEL_ATTACKED_NUMBER = 300
+                print("hello")
             return 0
-
-        global REBEL_ATTACKED_NUMBER
         REBEL_ATTACKED_NUMBER = REBEL_ATTACKED_NUMBER + 1
+        REBEL_ATTACKED_CANCAL_NUMBER = 0
         return 1
     else:
         # 找错了，要取消，点击取消按钮
@@ -521,36 +530,81 @@ def continuous_ship(interval=120):
         print("【持续跑船】已手动停止 (Ctrl+C)")
 
 
-def continuous_ship_with_reward(interval=1200):
+def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室']):
     """
-    持续跑船 + 领在线奖励，直到检测到登录异常或手动退出
+    统一入口：执行所有"日常任务"（跑船 + 在线奖励 + 荣誉 + 才艺学习）
     
-    :param interval: 跑船间隔秒数，默认 1200（20分钟）
+    每个任务独立 try/except，任一失败不影响其他。
+    开关控制：跑船受 is_active 控制，才艺学习受 study_active 控制，
+    领奖励/荣誉始终执行（轻量操作）。
+    
+    :param is_active: 是否执行跑船
+    :param study_active: 是否执行才艺学习
+    :param study_type: 才艺类型列表
     """
-    print(f"【跑船+奖励】启动，跑船间隔 {interval} 秒，按 Ctrl+C 或检测到登录异常时退出")
+    print(f"【日常任务】开始执行（跑船{'开启' if is_active else '关闭'}，才艺学习{'开启' if study_active else '关闭'}）")
+    errors = []
+
+    # 1. 跑船（受 is_active 控制）
+    if is_active:
+        try:
+            get_dock_order(True)
+        except Exception as e:
+            errors.append(f"跑船: {e}")
+
+    # 2. 领在线奖励（始终尝试，轻量）
+    try:
+        get_online_reward()
+    except Exception as e:
+        errors.append(f"在线奖励: {e}")
+
+    # 3. 领荣誉（始终尝试，轻量）
+    try:
+        get_free_honors()
+    except Exception as e:
+        errors.append(f"荣誉: {e}")
+
+    # 4. 才艺学习（受 study_active 控制）
+    if study_active:
+        try:
+            get_study_art(is_active=study_active, art_type=study_type)
+        except Exception as e:
+            errors.append(f"才艺学习: {e}")
+
+    if errors:
+        for err in errors:
+            print(f"【日常任务】出错: {err}")
+    else:
+        print("【日常任务】✓ 全部完成")
+
+
+def continuous_ship_with_reward(interval=1200, study_active=False, study_type=['琴室'], last_run_time=None):
+    """
+    持续跑船 + 日常任务循环，按 interval 间隔执行
+    
+    :param interval: 日常任务最小执行间隔秒数
+    :param study_active: 是否执行才艺学习
+    :param study_type: 才艺类型列表
+    :param last_run_time: 上次日常任务执行时间（datetime），用于对齐节奏
+    """
+    print(f"【跑船+奖励】启动，间隔 {interval}s，按 Ctrl+C 退出")
 
     try:
+        # 进来先对齐节奏：确保两次日常任务至少间隔 interval 秒
+        if last_run_time is not None:
+            elapsed = (datetime.now() - last_run_time).total_seconds()
+            if elapsed < interval:
+                remaining = interval - elapsed
+                print(f"【跑船+奖励】距上次日常任务仅 {int(elapsed)}s，先等 {int(remaining)}s 对齐节奏")
+                sleep(remaining)
+
         while True:
             return_login_exit()
             rebuild_and_back_to_holy_place(active=True)
 
-            # 跑船
-            print(f"【跑船+奖励】{datetime.now().strftime('%H:%M:%S')} 开始执行船坞运输...")
-            try:
-                result = get_dock_order(True)
-                print(f"【跑船+奖励】船坞运输完成 (result={result})")
-            except Exception as e:
-                print(f"【跑船+奖励】跑船出错: {e}")
-
-            # 领在线奖励 + 荣誉
-            try:
-                get_online_reward()
-            except Exception as e:
-                print(f"【跑船+奖励】领取在线奖励出错: {e}")
-            try:
-                get_free_honors()
-            except Exception as e:
-                print(f"【跑船+奖励】领取荣誉出错: {e}")
+            # 统一执行日常任务
+            print(f"【跑船+奖励】{datetime.now().strftime('%H:%M:%S')} 执行日常任务...")
+            _run_daily_tasks(is_active=True, study_active=study_active, study_type=study_type)
 
             print(f"【跑船+奖励】等待 {interval} 秒后继续下一轮")
             sleep(interval)
@@ -558,46 +612,47 @@ def continuous_ship_with_reward(interval=1200):
         print("【跑船+奖励】已手动停止 (Ctrl+C)")
 
 
-def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200):
+def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200,
+         study_active=False, study_type=['琴室']):
     """
-    打叛军 + 定时跑船 + 在线奖励，叛军打满后进入持续跑船+奖励循环
+    打叛军 + 定时跑船 + 在线奖励 + 才艺学习，叛军打满后进入持续跑船+奖励循环
     
     :param attack_num: 目标攻击叛军总数，<=0 表示不打叛军直接跑船
     :param send_rebel_list: 叛军等级列表
     :param num: 将领数量
     :param is_active: 是否激活跑船功能
-    :param ship_interval: 叛军打满后纯跑船的间隔秒数
+    :param ship_interval: 日常任务最小执行间隔秒数（默认 1200 = 20分钟）
+    :param study_active: 是否执行才艺学习
+    :param study_type: 才艺类型列表
     """
-    global REBEL_ATTACKED_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
+    global REBEL_ATTACKED_NUMBER, REBEL_ATTACKED_CANCAL_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
 
     # ---- 每次调用都重置全局状态，防止重入时计数残留 ----
     REBEL_ATTACKED_NUMBER = 0
+    REBEL_ATTACKED_CANCAL_NUMBER = 0
     ATTACKED_LOCATIONS = []
     DRAG_IGNORE_POSITION = (0,0)
     DIRECTION_LIST_INDEX = random.randint(0, 7)
 
-    print(f"【main】启动：叛军目标 {attack_num}，等级 {send_rebel_list}，将领 {num}，跑船 {'开启' if is_active else '关闭'}")
+    print(f"【main】启动：叛军目标 {attack_num}，等级 {send_rebel_list}，将领 {num}，"
+          f"跑船 {'开启' if is_active else '关闭'}，才艺学习 {'开启' if study_active else '关闭'}")
 
     try:
-        # ---------- 容错：attack_num <= 0 直接纯跑船 ----------
+        # ---------- 需求3：脚本启动先跑一遍日常任务 ----------
+        print("【main】首次启动 → 先执行一次日常任务...")
+        _run_daily_tasks(is_active=is_active, study_active=study_active, study_type=study_type)
+        pre_order_time = datetime.now()  # 首次执行后重置定时器起点
+
+        # ---------- 容错：attack_num <= 0 跳过打叛军 ----------
         if attack_num <= 0:
-            print(f"【main】attack_num={attack_num}，跳过打叛军，直接进入纯跑船模式")
+            print(f"【main】attack_num={attack_num}，跳过打叛军")
             if not is_active:
-                # 跑船关闭也领一次在线奖励 + 荣誉
-                try:
-                    get_online_reward()
-                except Exception as e:
-                    print(f"【main】领取在线奖励出错: {e}")
-                try:
-                    get_free_honors()
-                except Exception as e:
-                    print(f"【main】领取荣誉出错: {e}")
+                # 跑船关闭：刚启动时已执行一次日常任务，这里直接结束
                 print("【main】跑船未开启，程序结束")
                 return
-            continuous_ship_with_reward(interval=ship_interval)
+            # 跑船开启：进入独立循环（用 pre_order_time 对齐节奏）
+            continuous_ship_with_reward(interval=ship_interval, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
             return
-
-        pre_order_time = datetime.now()
 
         # ---------- 阶段一：打叛军 + 定时跑船 ----------
         while REBEL_ATTACKED_NUMBER < attack_num:
@@ -617,63 +672,108 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
             cycle_attack(send_rebel_list=send_rebel_list, num=num)
             print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击", REBEL_ATTACKED_NUMBER, "/", attack_num, "个叛军")
 
-            # 定时跑船（打叛军阶段每 20 分钟跑一次）
-            if is_active:
-                time_diff = datetime.now() - pre_order_time
-                if time_diff.total_seconds() >= 20 * 60:
-                    print(f"【main】定时跑船触发...")
-                    try:
-                        get_dock_order(True)
-                    except Exception as e:
-                        print(f"【main】跑船出错: {e}")
-                    pre_order_time = datetime.now()
+            # 定时任务块：距离上次执行 >= ship_interval 才触发（至少间隔）
+            time_diff = datetime.now() - pre_order_time
+            if time_diff.total_seconds() >= ship_interval:
+                print(f"【main】定时任务触发（距上次 {int(time_diff.total_seconds())}s）...")
+                _run_daily_tasks(is_active=is_active, study_active=study_active, study_type=study_type)
+                if is_active:
                     DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
-
-            # 🔴 在线奖励 + 荣誉独立于跑船开关，每次循环都尝试领
-            try:
-                get_online_reward()
-            except Exception as e:
-                print(f"【main】领取在线奖励出错: {e}")
-            try:
-                get_free_honors()
-            except Exception as e:
-                print(f"【main】领取荣誉出错: {e}")
+                pre_order_time = datetime.now()
 
         # ---------- 阶段二：叛军打满 → 持续跑船+奖励 ----------
         print(f"【main】✓ 已打满 {attack_num} 个叛军", end="")
         if is_active:
-            print(f"，切换为跑船+奖励模式（间隔 {ship_interval} 秒）")
-            # continuous_ship 是 while True 死循环，后面不能接代码 → 用合并函数
-            continuous_ship_with_reward(interval=ship_interval)
+            print(f"，切换为跑船+奖励模式（间隔 {ship_interval}s）")
+            # continuous_ship 内部会用 last_run_time 自动对齐节奏
+            continuous_ship_with_reward(interval=ship_interval, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
         else:
-            try:
-                get_online_reward()
-            except Exception as e:
-                print(f"【main】领取在线奖励出错: {e}")
-            try:
-                get_free_honors()
-            except Exception as e:
-                print(f"【main】领取荣誉出错: {e}")
-            print("，跑船未开启，程序结束")
+            # 跑船关闭：对齐节奏后执行一次就结束
+            elapsed = (datetime.now() - pre_order_time).total_seconds()
+            if elapsed >= ship_interval:
+                _run_daily_tasks(is_active=False, study_active=study_active, study_type=study_type)
+                print(f"，跑船未开启，程序结束")
+            else:
+                print(f"，距上次日常任务仅 {int(elapsed)}s（间隔 {ship_interval}s 未到），跑船未开启，程序结束")
     except KeyboardInterrupt:
         print("【main】已手动停止 (Ctrl+C)")
 
-
-
-
+def _flatten_role_cfg(cfg):
+    """把分组的角色配置展平为 main() 可以直接解包的 dict"""
+    flat = {}
+    for group_key, group_val in cfg.items():
+        if isinstance(group_val, dict):
+            flat.update(group_val)
+        else:
+            flat[group_key] = group_val
+    return flat
 
 
 if __name__ == '__main__':
-    #main(500,[26,27],4)
-    #get_online_reward()
-    # 178
-    print("程序开始运行")
-    # sleep(10)
-    #哥德
-    #main(200,[22],1)
-    
-    #main(350,[24,25,26,27,28,29]
-    #main(300,[28,29],4,False,2000)
-    main(0,[28,29],2,True)
-    # 新函数 — 持续跑船（带登录检测，自动退出）
-    # continuous_ship(interval=120)
+
+    # ========== 角色配置表（按功能分组） ==========
+    ROLE_CONFIG = {
+        'thor': {
+            'rebel': {
+                "attack_num": 0,
+                "send_rebel_list": [28, 29],
+                "num": 2,
+            },
+            'ship': {
+                "is_active": True,
+                "ship_interval": 1200,
+            },
+            'study': {
+                "study_active": True,
+                "study_type": ['书房'],
+            },
+        },
+        '运来': {
+            'rebel': {
+                "attack_num": 300,
+                "send_rebel_list": [28, 29],
+                "num": 4,
+            },
+            'ship': {
+                "is_active": False,
+                "ship_interval": 1200,
+            },
+            'study': {
+                "study_active": True,
+                "study_type": ['棋室'],
+            },
+        },
+        '兽医': {
+            'rebel': {
+                "attack_num": 0,
+                "send_rebel_list": [28, 29],
+                "num": 4,
+            },
+            'ship': {
+                "is_active": True,
+                "ship_interval": 1200,
+            },
+            'study': {
+                "study_active": True,
+                "study_type": ['棋室'],
+            },
+        },
+        # 加新角色直接复制上面模板
+    }
+
+    # ========== 选择要跑的角色 ==========
+    active_role = 'thor'  # ← 改这里切换角色
+
+    #active_role = '运来'
+    #active_role = 兽医'
+
+    if active_role not in ROLE_CONFIG:
+        print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
+    else:
+        cfg = _flatten_role_cfg(ROLE_CONFIG[active_role])
+        print(f"🎯 切换到角色: {active_role}")
+        for group in ['rebel', 'ship', 'study']:
+            print(f"   {group}: {ROLE_CONFIG[active_role].get(group, {})}")
+        main(**cfg)
+    # 旧的直接调用（留作手动测试）
+    # main(0, [28, 29], 2, True)
