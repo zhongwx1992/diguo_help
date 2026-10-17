@@ -93,22 +93,10 @@ pip install paddlepaddle paddleocr
 
 ```python
 # ========== 选择角色 ==========
-active_role = 'thor'    # ← 改这里切换
+active_role = 'role'    # ← 改这里切换
 
 # ========== 角色配置表 ==========
-ROLE_CONFIG = {
-    'thor': {
-        'rebel':  {"attack_num": 300, "send_rebel_list": [28, 29], "num": 2},
-        'ship':   {"is_active": True, "ship_interval": 1200},
-        'study':  {"study_active": True, "study_type": ['书房']},
-    },
-    '运来': {
-        'rebel':  {"attack_num": 0, "send_rebel_list": [28, 29], "num": 4},
-        'ship':   {"is_active": True, "ship_interval": 1200},
-        'study':  {"study_active": True, "study_type": ['棋室']},
-    },
-    # 加新角色直接复制上面模板
-}
+
 ```
 
 运行：
