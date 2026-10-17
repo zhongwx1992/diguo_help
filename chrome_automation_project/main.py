@@ -703,7 +703,7 @@ def _flatten_role_cfg(cfg):
 
 # ========== 角色配置表（按功能分组） ==========
 ROLE_CONFIG = {
-    'thor': {
+    '刷叛军弓兵才艺开船': {
         'rebel': {
             "attack_num": 300,
             "send_rebel_list": [28, 29],
@@ -718,14 +718,14 @@ ROLE_CONFIG = {
             "study_type": ['书房'],
         },
     },
-    '运来': {
+    '刷叛军骑兵才艺不开船': {
         'rebel': {
             "attack_num": 0,
             "send_rebel_list": [28, 29],
             "num": 4,
         },
         'ship': {
-            "is_active": True,
+            "is_active": False,
             "ship_interval": 1200,
         },
         'study': {
@@ -754,8 +754,8 @@ ROLE_CONFIG = {
 if __name__ == '__main__':
 
     # ========== 选择要跑的角色 ==========
-    # active_role = 'thor'  # ← 改这里切换角色
-    active_role = '运来'
+    active_role = '刷叛军弓兵才艺开船'  
+    #active_role = '刷叛军骑兵才艺不开船'
     #active_role = '不刷叛军骑兵才艺开船'
 
     if active_role not in ROLE_CONFIG:
