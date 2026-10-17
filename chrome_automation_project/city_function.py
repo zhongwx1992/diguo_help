@@ -83,7 +83,9 @@ def get_dock_order(is_active=False):
     sleep(1)
     rebuild_city()
     find_dock = False
-    while not find_dock:
+    max_dock_retry = 4  # 🔴 限制最多拖动寻找 4 次
+    dock_retry = 0
+    while not find_dock and dock_retry < max_dock_retry:
         dock_location = image_center_location( get_click_type_path('dock'),confidence=0.8)
 
         if dock_location != (None, None):
@@ -98,7 +100,7 @@ def get_dock_order(is_active=False):
             find_dock = True
         
         else:
-            print("未找到船坞，重新查找 拖动屏幕")
+            print(f"未找到船坞，第 {dock_retry + 1}/{max_dock_retry} 次拖动查找")
             in_city =  image_center_location( get_click_type_path('to_world'),confidence=0.8)
             if in_city == (None, None):
                 print("不在主城内，退出开船函数")
@@ -111,6 +113,11 @@ def get_dock_order(is_active=False):
             pyautogui.dragRel(-300, 150, duration=0.5, button='left')
             pyautogui.mouseUp(button='left')
             sleep(1)
+            dock_retry += 1
+
+    if not find_dock:
+        print(f"已拖动寻找 {max_dock_retry} 次仍未找到船坞，退出")
+        return 0
 
     search_and_click_image(click_type='dock',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
