@@ -579,16 +579,17 @@ def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室']):
         print("【日常任务】✓ 全部完成")
 
 
-def continuous_ship_with_reward(interval=1200, study_active=False, study_type=['琴室'], last_run_time=None):
+def continuous_ship_with_reward(interval=1200, ship_active=True, study_active=False, study_type=['琴室'], last_run_time=None):
     """
-    持续跑船 + 日常任务循环，按 interval 间隔执行
+    持续日常任务死循环，按 interval 间隔执行
     
     :param interval: 日常任务最小执行间隔秒数
+    :param ship_active: 是否执行跑船
     :param study_active: 是否执行才艺学习
     :param study_type: 才艺类型列表
     :param last_run_time: 上次日常任务执行时间（datetime），用于对齐节奏
     """
-    print(f"【跑船+奖励】启动，间隔 {interval}s，按 Ctrl+C 退出")
+    print(f"【日常任务循环】启动，间隔 {interval}s，跑船 {'开启' if ship_active else '关闭'}，按 Ctrl+C 退出")
 
     try:
         # 进来先对齐节奏：确保两次日常任务至少间隔 interval 秒
@@ -596,7 +597,7 @@ def continuous_ship_with_reward(interval=1200, study_active=False, study_type=['
             elapsed = (datetime.now() - last_run_time).total_seconds()
             if elapsed < interval:
                 remaining = interval - elapsed
-                print(f"【跑船+奖励】距上次日常任务仅 {int(elapsed)}s，先等 {int(remaining)}s 对齐节奏")
+                print(f"【日常任务循环】距上次仅 {int(elapsed)}s，先等 {int(remaining)}s 对齐节奏")
                 sleep(remaining)
 
         while True:
@@ -604,13 +605,13 @@ def continuous_ship_with_reward(interval=1200, study_active=False, study_type=['
             rebuild_and_back_to_holy_place(active=True)
 
             # 统一执行日常任务
-            print(f"【跑船+奖励】{datetime.now().strftime('%H:%M:%S')} 执行日常任务...")
-            _run_daily_tasks(is_active=True, study_active=study_active, study_type=study_type)
+            print(f"【日常任务循环】{datetime.now().strftime('%H:%M:%S')} 执行...")
+            _run_daily_tasks(is_active=ship_active, study_active=study_active, study_type=study_type)
 
-            print(f"【跑船+奖励】等待 {interval} 秒后继续下一轮")
+            print(f"【日常任务循环】等待 {interval}s 后继续下一轮")
             sleep(interval)
     except KeyboardInterrupt:
-        print("【跑船+奖励】已手动停止 (Ctrl+C)")
+        print("【日常任务循环】已手动停止 (Ctrl+C)")
 
 
 def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200,
@@ -644,15 +645,10 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
         _run_daily_tasks(is_active=is_active, study_active=study_active, study_type=study_type)
         pre_order_time = datetime.now()  # 首次执行后重置定时器起点
 
-        # ---------- 容错：attack_num <= 0 跳过打叛军 ----------
+        # ---------- 容错：attack_num <= 0 跳过打叛军，直接进日常任务循环 ----------
         if attack_num <= 0:
-            print(f"【main】attack_num={attack_num}，跳过打叛军")
-            if not is_active:
-                # 跑船关闭：刚启动时已执行一次日常任务，这里直接结束
-                print("【main】跑船未开启，程序结束")
-                return
-            # 跑船开启：进入独立循环（用 pre_order_time 对齐节奏）
-            continuous_ship_with_reward(interval=ship_interval, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
+            print(f"【main】attack_num={attack_num}，跳过打叛军，直接进入日常任务循环（间隔 {ship_interval}s）")
+            continuous_ship_with_reward(interval=ship_interval, ship_active=is_active, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
             return
 
         # ---------- 阶段一：打叛军 + 定时跑船 ----------
@@ -682,20 +678,9 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
                     DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
                 pre_order_time = datetime.now()
 
-        # ---------- 阶段二：叛军打满 → 持续跑船+奖励 ----------
-        print(f"【main】✓ 已打满 {attack_num} 个叛军", end="")
-        if is_active:
-            print(f"，切换为跑船+奖励模式（间隔 {ship_interval}s）")
-            # continuous_ship 内部会用 last_run_time 自动对齐节奏
-            continuous_ship_with_reward(interval=ship_interval, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
-        else:
-            # 跑船关闭：对齐节奏后执行一次就结束
-            elapsed = (datetime.now() - pre_order_time).total_seconds()
-            if elapsed >= ship_interval:
-                _run_daily_tasks(is_active=False, study_active=study_active, study_type=study_type)
-                print(f"，跑船未开启，程序结束")
-            else:
-                print(f"，距上次日常任务仅 {int(elapsed)}s（间隔 {ship_interval}s 未到），跑船未开启，程序结束")
+        # ---------- 阶段二：叛军打满 → 日常任务死循环（挂机） ----------
+        print(f"【main】✓ 已打满 {attack_num} 个叛军，进入日常任务循环（间隔 {ship_interval}s）")
+        continuous_ship_with_reward(interval=ship_interval, ship_active=is_active, study_active=study_active, study_type=study_type, last_run_time=pre_order_time)
     except KeyboardInterrupt:
         print("【main】已手动停止 (Ctrl+C)")
 

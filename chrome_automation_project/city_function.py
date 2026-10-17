@@ -83,7 +83,7 @@ def get_free_honors():
     # 'honors_tag'
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
-
+    rebuild_city()
     center_x, center_y = GAME_CENTER_LOCATION['location']
     # 移动鼠标到屏幕中心
     pyautogui.moveTo(center_x,center_y, duration=0.2)
@@ -120,7 +120,7 @@ def get_free_honors():
     search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
     return True
 
-def get_study_art(is_active=False, art_type=['琴室']):
+def get_study_art(is_active=True, art_type=['琴室']):
     """
     才艺学习 - 支持一次学习多个才艺类型
 
@@ -129,6 +129,8 @@ def get_study_art(is_active=False, art_type=['琴室']):
                      例：'琴室' 或 ['琴室', '棋室'] 或 ['琴室','棋室','书房','画廊']
     :return: True=成功 False=失败/未启用
     """
+    print(f"【才艺学习】is_active={is_active}, art_type={art_type}")    
+
     if not is_active:
         print("【才艺学习】is_active=False，跳过")
         return False
@@ -178,11 +180,13 @@ def get_study_art(is_active=False, art_type=['琴室']):
     while get_art_result_position[0] is not None and get_art_result_position[1] is not None:
         moveTo(get_art_result_position[0], get_art_result_position[1], 0.1)
         click(get_art_result_position[0], get_art_result_position[1], button='left', clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
         #search_and_click_image(click_type='get_art_result',clicks=1, interval=0.2, duration=0.2)
         print("领取成功")
         # 需要点空地址，确认领取 
-        pyautogui.click(x=GAME_CENTER_LOCATION['location'][0]+200, y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
+        pyautogui.click(x=GAME_CENTER_LOCATION['location'][0], y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
         sleep(1)
+        pyautogui.click(x=GAME_CENTER_LOCATION['location'][0], y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
         get_art_result_position = image_center_location(get_click_type_path('get_art_result'))
 
     ### 才艺学习按钮硬编码参考坐标（x 相同，按 y 从上到下）
@@ -226,8 +230,8 @@ def get_study_art(is_active=False, art_type=['琴室']):
         # 确认学习
         search_and_click_image(click_type='last_study', clicks=2, interval=0.2, duration=0.2)
         sleep(1)
-        # 退出学习界面
-        search_and_click_image(click_type='exit_study', clicks=2, interval=0.2, duration=0.2)
+        # 退出学习界面（只点 1 次，避免把才艺坊也退了）
+        search_and_click_image(click_type='exit_study', clicks=1, interval=0.2, duration=0.2)
         sleep(1)
         print(f"✓ 已完成学习: {art}")
         
@@ -236,7 +240,7 @@ def get_study_art(is_active=False, art_type=['琴室']):
     search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     return True
-    
+
 def get_dock_order(is_active=False):
     """
     Purpose: 跑船
@@ -358,7 +362,7 @@ if __name__ == "__main__":
     # rebuild_main_city()
     # sleep(10)
     # get_dock_order(TRUE)
-    get_study_art(['琴室','棋室','书房','画廊'])
+    get_study_art(True,['琴室','棋室','书房','画廊'])
 
     # get_study_art(['书房'])
     
