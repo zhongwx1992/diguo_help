@@ -733,11 +733,11 @@ ROLE_CONFIG = {
             "study_type": ['棋室'],
         },
     },
-    '兽医': {
+    '不刷叛军骑兵才艺开船': {
         'rebel': {
             "attack_num": 0,
-            "send_rebel_list": [28, 29],
-            "num": 4,
+            "send_rebel_list": [29],
+            "num": 1,
         },
         'ship': {
             "is_active": True,
@@ -755,9 +755,8 @@ if __name__ == '__main__':
 
     # ========== 选择要跑的角色 ==========
     # active_role = 'thor'  # ← 改这里切换角色
-
     active_role = '运来'
-    #active_role = '兽医'
+    #active_role = '不刷叛军骑兵才艺开船'
 
     if active_role not in ROLE_CONFIG:
         print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
