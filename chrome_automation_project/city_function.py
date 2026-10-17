@@ -2,20 +2,63 @@
 from pickle import TRUE
 from time import sleep
 import pyautogui
-from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION
+from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION,click_image_when_exist
+from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, click, locateAllOnScreen
+
 
 
 
 def get_online_reward():
     """
-    Purpose: 领取在线奖励
+    Purpose: 实现获取在线奖励的功能 ,
+    点击在线奖励->获取奖励->确认奖励->退出奖励
     """
+    ## 判断主城状态 
+    
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
+    sleep(2)
+    online_reward_position = image_center_location(get_click_type_path('online_reward'))
+    if online_reward_position[0] is None or online_reward_position[1] is None:
+        print("无在线奖励")
+        return False
+    moveTo(online_reward_position[0], online_reward_position[1], 0.1)
+    click(online_reward_position[0], online_reward_position[1], button='left', clicks=2, interval=0.2, duration=0.2)
     sleep(1)
 
-    search_and_click_image(click_type='online_reward',clicks=2, interval=0.2, duration=0.2,confidence=0.7)
-    search_and_click_image(click_type='get_online_reward',clicks=1, interval=0.2, duration=0.2)
-    search_and_click_image(click_type='online_reward_exit',clicks=2, interval=0.2, duration=0.2)
+    # 判断是否成功进入在线奖励主界面
+    online_reward_main_page_position = image_center_location(get_click_type_path('online_reward_main_page'))
+    if online_reward_main_page_position[0] is None or online_reward_main_page_position[1] is None:
+        print("点击失败，无在线奖励主页面")
+        return False
+
+    search_and_click_image('get_online_reward',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+    ### 这里点击之后可能跳出双倍领取提示，需要判断
+    sleep(2)
+    double_reward_position = image_center_location(get_click_type_path('double_reward'))
+    if double_reward_position[0] is not None and double_reward_position[1] is not None:
+        moveTo(double_reward_position[0], double_reward_position[1], 0.1)
+        click(double_reward_position[0], double_reward_position[1], button='left', clicks=2, interval=0.2, duration=0.2)
+        print("双倍领取成功")
+        sleep(1)
+
+    # 需要点空地址，确认领取 
+    pyautogui.click(x=GAME_CENTER_LOCATION['location'][0]+200, y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
+    sleep(1)         
+
+    ## 需要增加一个判断，判断在线奖励是否退出 
+    online_reward_main_page_position = image_center_location(get_click_type_path('online_reward_main_page'))
+    while online_reward_main_page_position[0] is not None and online_reward_main_page_position[1] is not None:
+        search_and_click_image(click_type='exit_online_reward',clicks=2, interval=0.2, duration=0.2)
+        online_reward_main_page_position = image_center_location(get_click_type_path('online_reward_main_page'))
+        sleep(1)
+
+    search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+    return True
+
+
+
+
+
 
 
 def rebuild_city():
@@ -132,9 +175,10 @@ def rebuild_main_city():
 if __name__ == "__main__":
     #search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     #sleep(1)
-    #get_online_reward()
+    # get_online_reward()
     #rebuild_city()
     # rebuild_main_city()
     # sleep(10)
     # get_dock_order(TRUE)
     ship()
+    #click_image_when_exist('online_reward_main_page','exit_online_reward',clicks=2, interval=0.2, duration=0.2,confidence=0.8)

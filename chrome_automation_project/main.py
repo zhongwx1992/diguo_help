@@ -521,15 +521,48 @@ def continuous_ship(interval=120):
         print("【持续跑船】已手动停止 (Ctrl+C)")
 
 
+def continuous_ship_with_reward(interval=1200):
+    """
+    持续跑船 + 领在线奖励，直到检测到登录异常或手动退出
+    
+    :param interval: 跑船间隔秒数，默认 1200（20分钟）
+    """
+    print(f"【跑船+奖励】启动，跑船间隔 {interval} 秒，按 Ctrl+C 或检测到登录异常时退出")
+
+    try:
+        while True:
+            return_login_exit()
+            rebuild_and_back_to_holy_place(active=True)
+
+            # 跑船
+            print(f"【跑船+奖励】{datetime.now().strftime('%H:%M:%S')} 开始执行船坞运输...")
+            try:
+                result = get_dock_order(True)
+                print(f"【跑船+奖励】船坞运输完成 (result={result})")
+            except Exception as e:
+                print(f"【跑船+奖励】跑船出错: {e}")
+
+            # 领在线奖励
+            try:
+                get_online_reward()
+            except Exception as e:
+                print(f"【跑船+奖励】领取在线奖励出错: {e}")
+
+            print(f"【跑船+奖励】等待 {interval} 秒后继续下一轮")
+            sleep(interval)
+    except KeyboardInterrupt:
+        print("【跑船+奖励】已手动停止 (Ctrl+C)")
+
+
 def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200):
     """
-    打叛军 + 定时跑船，叛军打满后调用 continuous_ship 继续纯跑船
+    打叛军 + 定时跑船 + 在线奖励，叛军打满后进入持续跑船+奖励循环
     
     :param attack_num: 目标攻击叛军总数，<=0 表示不打叛军直接跑船
     :param send_rebel_list: 叛军等级列表
     :param num: 将领数量
     :param is_active: 是否激活跑船功能
-    :param ship_interval: 叛军打满后纯跑船的间隔秒数，默认 1800（30分钟）
+    :param ship_interval: 叛军打满后纯跑船的间隔秒数
     """
     global REBEL_ATTACKED_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
 
@@ -546,9 +579,14 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
         if attack_num <= 0:
             print(f"【main】attack_num={attack_num}，跳过打叛军，直接进入纯跑船模式")
             if not is_active:
+                # 跑船关闭也领一次在线奖励
+                try:
+                    get_online_reward()
+                except Exception as e:
+                    print(f"【main】领取在线奖励出错: {e}")
                 print("【main】跑船未开启，程序结束")
                 return
-            continuous_ship(interval=ship_interval)
+            continuous_ship_with_reward(interval=ship_interval)
             return
 
         pre_order_time = datetime.now()
@@ -583,12 +621,23 @@ def main(attack_num, send_rebel_list=[26,27], num=4, is_active=False, ship_inter
                     pre_order_time = datetime.now()
                     DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
 
-        # ---------- 阶段二：叛军打满 → 复用 continuous_ship ----------
+            # 🔴 在线奖励独立于跑船开关，每次循环都尝试领
+            try:
+                get_online_reward()
+            except Exception as e:
+                print(f"【main】领取在线奖励出错: {e}")
+
+        # ---------- 阶段二：叛军打满 → 持续跑船+奖励 ----------
         print(f"【main】✓ 已打满 {attack_num} 个叛军", end="")
         if is_active:
-            print(f"，切换为纯跑船模式（间隔 {ship_interval} 秒）")
-            continuous_ship(interval=ship_interval)
+            print(f"，切换为跑船+奖励模式（间隔 {ship_interval} 秒）")
+            # continuous_ship 是 while True 死循环，后面不能接代码 → 用合并函数
+            continuous_ship_with_reward(interval=ship_interval)
         else:
+            try:
+                get_online_reward()
+            except Exception as e:
+                print(f"【main】领取在线奖励出错: {e}")
             print("，跑船未开启，程序结束")
     except KeyboardInterrupt:
         print("【main】已手动停止 (Ctrl+C)")
@@ -606,14 +655,9 @@ if __name__ == '__main__':
     # sleep(10)
     #哥德
     #main(200,[22],1)
-    # 红豆生南国 24 可以三个刷
-    #main(350,[28,29],2,False)
-    #main(350,[24,25,26,27,28,29],3,False)
     
-    # 有
-    main(158,[28,29],2,True)
-    #main(350,[27,28,29],4,True)
-    #main(230,[28,29],4,False,2000)
-
+    #main(350,[24,25,26,27,28,29]
+    #main(300,[28,29],4,False,2000)
+    main(0,[28,29],2,True)
     # 新函数 — 持续跑船（带登录检测，自动退出）
     # continuous_ship(interval=120)
