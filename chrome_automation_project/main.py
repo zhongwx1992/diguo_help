@@ -440,9 +440,10 @@ def attack_rebel(coords,level,num):
             #     REBEL_ATTACKED_NUMBER = 300
             search_and_click_image(click_type='reble_info_cancel', clicks=1, interval=0.2, duration=0.2)
             REBEL_ATTACKED_CANCAL_NUMBER += 1
-            if REBEL_ATTACKED_CANCAL_NUMBER >= 20:
+            print("连续取消攻击叛军",REBEL_ATTACKED_CANCAL_NUMBER,"次")
+            if REBEL_ATTACKED_CANCAL_NUMBER >= 10:
                 REBEL_ATTACKED_NUMBER = 300
-                print("hello")
+                print("连续取消攻击叛军10次，判定叛军已打满")
             return 0
         REBEL_ATTACKED_NUMBER = REBEL_ATTACKED_NUMBER + 1
         REBEL_ATTACKED_CANCAL_NUMBER = 0
@@ -709,63 +710,63 @@ def _flatten_role_cfg(cfg):
     return flat
 
 
+# ========== 角色配置表（按功能分组） ==========
+ROLE_CONFIG = {
+    'thor': {
+        'rebel': {
+            "attack_num": 300,
+            "send_rebel_list": [28, 29],
+            "num": 2,
+        },
+        'ship': {
+            "is_active": True,
+            "ship_interval": 1200,
+        },
+        'study': {
+            "study_active": True,
+            "study_type": ['书房'],
+        },
+    },
+    '运来': {
+        'rebel': {
+            "attack_num": 0,
+            "send_rebel_list": [28, 29],
+            "num": 4,
+        },
+        'ship': {
+            "is_active": False,
+            "ship_interval": 1200,
+        },
+        'study': {
+            "study_active": True,
+            "study_type": ['棋室'],
+        },
+    },
+    '兽医': {
+        'rebel': {
+            "attack_num": 0,
+            "send_rebel_list": [28, 29],
+            "num": 4,
+        },
+        'ship': {
+            "is_active": True,
+            "ship_interval": 1200,
+        },
+        'study': {
+            "study_active": True,
+            "study_type": ['棋室'],
+        },
+    },
+    # 加新角色直接复制上面模板
+}
+
 if __name__ == '__main__':
 
-    # ========== 角色配置表（按功能分组） ==========
-    ROLE_CONFIG = {
-        'thor': {
-            'rebel': {
-                "attack_num": 0,
-                "send_rebel_list": [28, 29],
-                "num": 2,
-            },
-            'ship': {
-                "is_active": True,
-                "ship_interval": 1200,
-            },
-            'study': {
-                "study_active": True,
-                "study_type": ['书房'],
-            },
-        },
-        '运来': {
-            'rebel': {
-                "attack_num": 300,
-                "send_rebel_list": [28, 29],
-                "num": 4,
-            },
-            'ship': {
-                "is_active": False,
-                "ship_interval": 1200,
-            },
-            'study': {
-                "study_active": True,
-                "study_type": ['棋室'],
-            },
-        },
-        '兽医': {
-            'rebel': {
-                "attack_num": 0,
-                "send_rebel_list": [28, 29],
-                "num": 4,
-            },
-            'ship': {
-                "is_active": True,
-                "ship_interval": 1200,
-            },
-            'study': {
-                "study_active": True,
-                "study_type": ['棋室'],
-            },
-        },
-        # 加新角色直接复制上面模板
-    }
-
     # ========== 选择要跑的角色 ==========
-    active_role = 'thor'  # ← 改这里切换角色
+    # active_role = 'thor'  # ← 改这里切换角色
 
-    #active_role = '运来'
-    #active_role = 兽医'
+    active_role = '运来'
+    #active_role = '兽医'
 
     if active_role not in ROLE_CONFIG:
         print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
