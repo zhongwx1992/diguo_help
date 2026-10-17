@@ -221,6 +221,17 @@ def get_click_type_path(click_type: str) -> str | None:
         'get_resource': 'chrome_automation_project/diguo/get_resource/get_resource.png',
         'rebel_used_up': 'chrome_automation_project/diguo/rebel/rebel_used_up.png',
         
+        ### 战役
+        'battle_position': 'chrome_automation_project/diguo/battle/battle_position.png',
+        'enter_battle': 'chrome_automation_project/diguo/battle/enter_battle.png',
+        'clear_all_battle': 'chrome_automation_project/diguo/battle/clear_all_battle.png',
+        'real_battle_1': 'chrome_automation_project/diguo/battle/real_battle_1.png',
+        'real_battle_2': 'chrome_automation_project/diguo/battle/real_battle_2.png',
+
+        'exit_real_battle': 'chrome_automation_project/diguo/battle/exit_real_battle.png',
+        'battle_back_space': 'chrome_automation_project/diguo/battle/battle_back_space.png',
+        'back_to_real_battle_2': 'chrome_automation_project/diguo/battle/back_to_real_battle_2.png',
+        'buy_energy': 'chrome_automation_project/diguo/battle/buy_energy.png',
     }
 
     if click_type not in path_mapping:
@@ -301,12 +312,12 @@ def image_center_location_all(image_path:str,region=None,confidence=0.8,cluster=
     result_location = []
     primary = PRIMARY_MONITOR_INFO
     try:
-        locations = locateAllOnScreen(image_path, confidence=confidence,region=region)
+        # 用 list() 强制生成器立即执行，让异常在 try 块内抛出
+        locations = list(locateAllOnScreen(image_path, confidence=confidence, region=region))
         if not locations:
-            #print(f"Image not found: {image_path}")
             return None, None
-    except ImageNotFoundException:
-        #print(f"Image not found: {image_path}")
+    except Exception:
+        # 图片文件不存在 / 屏幕上无匹配 / 其他 OpenCV 异常 → 统一返回空
         return None, None
     for location in locations:
         # 获取屏幕坐标

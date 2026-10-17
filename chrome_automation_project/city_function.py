@@ -1,10 +1,9 @@
 
-from pickle import TRUE
 from re import S
 from time import sleep
 import pyautogui
 from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION,image_center_location_all
-from pyautogui import locateOnScreen, center, ImageNotFoundException, moveTo, click, locateAllOnScreen
+from pyautogui import moveTo, click
 
 
 
@@ -21,6 +20,7 @@ def get_online_reward():
     online_reward_position = image_center_location(get_click_type_path('online_reward'))
     if online_reward_position[0] is None or online_reward_position[1] is None:
         print("无在线奖励")
+        search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
         return False
     moveTo(online_reward_position[0], online_reward_position[1], 0.1)
     click(online_reward_position[0], online_reward_position[1], button='left', clicks=2, interval=0.2, duration=0.2)
@@ -30,6 +30,7 @@ def get_online_reward():
     online_reward_main_page_position = image_center_location(get_click_type_path('online_reward_main_page'))
     if online_reward_main_page_position[0] is None or online_reward_main_page_position[1] is None:
         print("点击失败，无在线奖励主页面")
+        search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
         return False
 
     search_and_click_image('get_online_reward',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
@@ -129,6 +130,8 @@ def get_study_art(is_active=True, art_type=['琴室']):
                      例：'琴室' 或 ['琴室', '棋室'] 或 ['琴室','棋室','书房','画廊']
     :return: True=成功 False=失败/未启用
     """
+    
+
     print(f"【才艺学习】is_active={is_active}, art_type={art_type}")    
 
     if not is_active:
@@ -148,7 +151,7 @@ def get_study_art(is_active=True, art_type=['琴室']):
     if invalid:
         print(f"无效的才艺类型: {invalid}，可选值: {ART_TYPE_LIST}")
         return False
-
+    sleep(1)
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     rebuild_city()
@@ -164,6 +167,8 @@ def get_study_art(is_active=True, art_type=['琴室']):
     if art_main_page_position[0] is None or art_main_page_position[1] is None:
         print("未进入才艺坊")
         search_and_click_image(click_type='art_back_space',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+        search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
         sleep(1)
         return False
 
@@ -199,42 +204,44 @@ def get_study_art(is_active=True, art_type=['琴室']):
     Y_TOLERANCE = 80  # y 轴容差像素，用于判断某个房间的按钮是否可见
 
     # 获取屏幕上当前可见的所有 study 按钮（去重后）
-    visible_locations = image_center_location_all(get_click_type_path('study')) or []
+    visible_locations = image_center_location_all(get_click_type_path('study'))
     if visible_locations == (None, None):
+        print(f"没有可以学习的才艺按钮，跳过学习")
         visible_locations = []
+    else:
+        print(f"屏幕上检测到 {len(visible_locations)} 个可见 study 按钮: {visible_locations}")
+        # 逐个学习用户指定的才艺
+        for art in art_types:
+            ref_x, ref_y = STUDY_BUTTON_POSITIONS[art]
 
-    print(f"屏幕上检测到 {len(visible_locations)} 个可见 study 按钮: {visible_locations}")
+            # 匹配：在可见按钮中找 y 坐标落在该房间参考范围内的
+            matched_pos = None
+            for (vx, vy) in visible_locations:
+                if abs(vy - ref_y) <= Y_TOLERANCE:
+                    matched_pos = (vx, vy)
+                    break
 
-    # 逐个学习用户指定的才艺
-    for art in art_types:
-        ref_x, ref_y = STUDY_BUTTON_POSITIONS[art]
+            if matched_pos is None:
+                print(f"⚠️ {art} 按钮未找到（可能正在学习中），跳过")
+                continue
 
-        # 匹配：在可见按钮中找 y 坐标落在该房间参考范围内的
-        matched_pos = None
-        for (vx, vy) in visible_locations:
-            if abs(vy - ref_y) <= Y_TOLERANCE:
-                matched_pos = (vx, vy)
-                break
-
-        if matched_pos is None:
-            print(f"⚠️ {art} 按钮未找到（可能正在学习中），跳过")
-            continue
-
-        print(f"开始学习 {art}，坐标 {matched_pos}")
-        moveTo(matched_pos[0], matched_pos[1], 0.1)
-        click(matched_pos[0], matched_pos[1], button='left', clicks=2, interval=0.2, duration=0.2)
-        sleep(1)
-        # 选择快速选择
-        search_and_click_image(click_type='choice_beauty', clicks=1, interval=0.2, duration=0.2)
-        sleep(1)
-        # 确认学习
-        search_and_click_image(click_type='last_study', clicks=2, interval=0.2, duration=0.2)
-        sleep(1)
-        # 退出学习界面（只点 1 次，避免把才艺坊也退了）
-        search_and_click_image(click_type='exit_study', clicks=1, interval=0.2, duration=0.2)
-        sleep(1)
-        print(f"✓ 已完成学习: {art}")
+            print(f"开始学习 {art}，坐标 {matched_pos}")
+            moveTo(matched_pos[0], matched_pos[1], 0.1)
+            click(matched_pos[0], matched_pos[1], button='left', clicks=2, interval=0.2, duration=0.2)
+            sleep(1)
+            # 选择快速选择
+            search_and_click_image(click_type='choice_beauty', clicks=1, interval=0.2, duration=0.2)
+            sleep(1)
+            # 确认学习
+            search_and_click_image(click_type='last_study', clicks=2, interval=0.2, duration=0.2)
+            sleep(1)
+            # 退出学习界面（只点 1 次，避免把才艺坊也退了）
+            search_and_click_image(click_type='exit_study', clicks=1, interval=0.2, duration=0.2)
+            sleep(1)
+            print(f"✓ 已完成学习: {art}")
         
+    search_and_click_image(click_type='art_back_space', clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
     search_and_click_image(click_type='art_back_space', clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
@@ -331,12 +338,6 @@ def get_dock_order(is_active=False):
 
     return 1 
 
-def ship():
-    while True:
-        get_dock_order(TRUE)
-        sleep(120)
-
-
 def rebuild_main_city():
     """
     Purpose: 检测是否被攻击 被攻击后重建主城
@@ -352,6 +353,40 @@ def rebuild_main_city():
         return False    
 
 
+def get_every_battle():
+    """
+    Purpose:扫荡战役
+    """
+    sleep(1)
+    search_and_click_image(click_type='enter_battle',clicks=2, interval=0.2, duration=0.2)
+    search_and_click_image(click_type='battle_position',clicks=2, interval=0.2, duration=0.2)
+    search_and_click_image(click_type='clear_all_battle',clicks=2, interval=0.2, duration=0.2)
+    search_and_click_image(click_type='real_battle_1',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='real_battle_2',clicks=2, interval=0.2, duration=0.2)
+    ### 这里进去有两个可能，一个是成功扫荡，一个是没体力了，扫荡不了
+    buy_energy_location = image_center_location( get_click_type_path('buy_energy'),confidence=0.8)
+    while buy_energy_location == (None, None):
+        print("还有体力啦 ，继续干")
+        search_and_click_image(click_type='back_to_real_battle_2',clicks=1, interval=0.2, duration=0.2) 
+        sleep(1)
+        search_and_click_image(click_type='real_battle_2',clicks=2, interval=0.2, duration=0.2)
+        buy_energy_location = image_center_location( get_click_type_path('buy_energy'),confidence=0.8)
+
+    print("进入购买体力界面 - 没体力啦")
+    search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+
+    search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='battle_back_space',clicks=1, interval=0.2, duration=0.2)
+    sleep(1)
+    return 1
+    # 成功之后就是退出
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -362,7 +397,10 @@ if __name__ == "__main__":
     # rebuild_main_city()
     # sleep(10)
     # get_dock_order(TRUE)
-    get_study_art(True,['琴室','棋室','书房','画廊'])
+    #get_study_art(True,['琴室','棋室','书房','画廊'])
+    get_every_battle()
 
+
+    #print(image_center_location( get_click_type_path('buy_energy'),confidence=0.8))
     # get_study_art(['书房'])
     
