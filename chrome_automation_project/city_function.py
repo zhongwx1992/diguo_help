@@ -305,7 +305,6 @@ def get_dock_order(is_active=False):
     sleep(1)
     # 进入船坞
     search_and_click_image(click_type='dock_in',clicks=1, interval=0.2, duration=0.2)
-    # 获取订单 TODO: 这里需要加一个循环逻辑，把所有坑位都填满
 
     while True:
         get_order = image_center_location( get_click_type_path('dock_get_order'),confidence=0.8)
@@ -314,7 +313,17 @@ def get_dock_order(is_active=False):
             # 橙色订单坐标
             pyautogui.click(x=715,y=399,clicks=2)
             search_and_click_image(click_type='dock_get_order_confirm',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+            
+            resource_status_location = image_center_location( get_click_type_path('resource_exhausted'),confidence=0.8)
+            if resource_status_location != (None, None):
+                search_and_click_image(click_type='cancel_order',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+                sleep(1)
+                search_and_click_image(click_type='exit_order',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+                sleep(1)
+                break            
             print("获取订单成功")
+
+
         else:
             center_x, center_y = GAME_CENTER_LOCATION['location']
             pyautogui.moveTo(center_x,center_y, duration=0.2)
@@ -398,9 +407,9 @@ if __name__ == "__main__":
     # sleep(10)
     # get_dock_order(TRUE)
     #get_study_art(True,['琴室','棋室','书房','画廊'])
-    get_every_battle()
+    # get_every_battle()
 
-
+    get_dock_order(True)
     #print(image_center_location( get_click_type_path('buy_energy'),confidence=0.8))
     # get_study_art(['书房'])
     

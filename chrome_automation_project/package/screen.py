@@ -142,6 +142,12 @@ def get_click_type_path(click_type: str) -> str | None:
 
         'dock_source': 'chrome_automation_project/diguo/city/dock_source.png',
 
+        # 开船无资源
+        'resource_exhausted': 'chrome_automation_project/diguo/city/resource_exhausted.png',
+        # 取消订单
+        'cancel_order': 'chrome_automation_project/diguo/city/cancel_order.png',
+        # 退出订单
+        'exit_order': 'chrome_automation_project/diguo/city/exit_order.png',
         # 登录操作
         'token_expired': 'chrome_automation_project/diguo/login/token_expired.png',
         'return_to_login': 'chrome_automation_project/diguo/login/return_to_login.png',
