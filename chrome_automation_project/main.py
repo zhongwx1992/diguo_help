@@ -720,7 +720,7 @@ ROLE_CONFIG = {
     },
     '刷叛军骑兵才艺不开船': {
         'rebel': {
-            "attack_num": 0,
+            "attack_num": 300,
             "send_rebel_list": [28, 29],
             "num": 4,
         },
@@ -754,9 +754,9 @@ ROLE_CONFIG = {
 if __name__ == '__main__':
 
     # ========== 选择要跑的角色 ==========
-    active_role = '刷叛军弓兵才艺开船'  
-    #active_role = '刷叛军骑兵才艺不开船'
-    #active_role = '不刷叛军骑兵才艺开船'
+    #active_role = '刷叛军弓兵才艺开船'  
+    active_role = '刷叛军骑兵才艺不开船'
+    # active_role = '不刷叛军骑兵才艺开船'
 
     if active_role not in ROLE_CONFIG:
         print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
@@ -764,7 +764,7 @@ if __name__ == '__main__':
         cfg = _flatten_role_cfg(ROLE_CONFIG[active_role])
         print(f"🎯 切换到角色: {active_role}")
         for group in ['rebel', 'ship', 'study']:
-            print(f"   {group}: {ROLE_CONFIG[active_role].get(group, {})}")
+            print(f"{group}: {ROLE_CONFIG[active_role].get(group, {})}")
         main(**cfg)
     # 旧的直接调用（留作手动测试）
     # main(0, [28, 29], 2, True)

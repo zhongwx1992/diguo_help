@@ -3,7 +3,7 @@ from time import sleep
 import pyautogui
 from package.region import primary_region_to_screen_region
 from package.screen import PRIMARY_MONITOR_INFO,search_and_click_image,get_click_type_path
-
+from login_service import return_login_exit
 
 def is_in_holy_place():
     """
@@ -38,7 +38,8 @@ def random_move():
     """
     # 打开背包
     # print("路径：", get_click_type_path('backpack'))    
-    # print("坐标：", image_center_location(get_click_type_path('backpack')))    
+    # print("坐标：", image_center_location(get_click_type_path('backpack')))   
+    return_login_exit()
     search_and_click_image(click_type='backpack',clicks=2, interval=0.2, duration=0.2)
     sleep(0.5)
     # 选择战斗

@@ -144,6 +144,7 @@ def get_click_type_path(click_type: str) -> str | None:
 
         # 开船无资源
         'resource_exhausted': 'chrome_automation_project/diguo/city/resource_exhausted.png',
+        'paper_use_out': 'chrome_automation_project/diguo/city/paper_use_out.png',
         # 取消订单
         'cancel_order': 'chrome_automation_project/diguo/city/cancel_order.png',
         # 退出订单

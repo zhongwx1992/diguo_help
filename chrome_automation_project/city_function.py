@@ -4,6 +4,7 @@ from time import sleep
 import pyautogui
 from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION,image_center_location_all
 from pyautogui import moveTo, click
+from login_service import return_login_exit
 
 
 
@@ -14,7 +15,7 @@ def get_online_reward():
     点击在线奖励->获取奖励->确认奖励->退出奖励
     """
     ## 判断主城状态 
-    
+    return_login_exit()        
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(2)
     online_reward_position = image_center_location(get_click_type_path('online_reward'))
@@ -71,6 +72,20 @@ def rebuild_city():
     """
     search_and_click_image(click_type='rebuild_city',clicks=1, interval=0.2, duration=0.2)
     search_and_click_image(click_type='rebuild_city_confirm',clicks=1, interval=0.2, duration=0.2)
+    return True
+
+def attack_status_check():
+    """
+    Purpose: 检查被攻击状态
+    """
+    attack_status_position = image_center_location(get_click_type_path('attack_my_city'))
+    if attack_status_position[0] is not None and attack_status_position[1] is not None:
+        print("被攻击")
+        return True
+    else:
+        print("未被攻击")
+        return False
+
 
 
 def get_free_honors():
@@ -82,6 +97,8 @@ def get_free_honors():
     # 'book_tag'
     # 'free_get'
     # 'honors_tag'
+    ## 判断主城状态 
+    return_login_exit()        
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     rebuild_city()
@@ -151,6 +168,7 @@ def get_study_art(is_active=True, art_type=['琴室']):
     if invalid:
         print(f"无效的才艺类型: {invalid}，可选值: {ART_TYPE_LIST}")
         return False
+    return_login_exit()
     sleep(1)
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
@@ -257,7 +275,7 @@ def get_dock_order(is_active=False):
 
     if not is_active:
         return 0
-
+    return_login_exit()
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     rebuild_city()
@@ -312,8 +330,19 @@ def get_dock_order(is_active=False):
             search_and_click_image(click_type='dock_get_order',clicks=1, interval=0.2, duration=0.2)
             # 橙色订单坐标
             pyautogui.click(x=715,y=399,clicks=2)
+
+            paper_use_out_location = image_center_location( get_click_type_path('paper_use_out'),confidence=0.8)
+            if paper_use_out_location != (None, None):
+                print("图纸用完，退出开船函数")
+                search_and_click_image(click_type='exit_order',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+                sleep(1)
+                # search_and_click_image(click_type='quit_dock',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
+                # sleep(1)
+                break
+
             search_and_click_image(click_type='dock_get_order_confirm',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
             
+
             resource_status_location = image_center_location( get_click_type_path('resource_exhausted'),confidence=0.8)
             if resource_status_location != (None, None):
                 search_and_click_image(click_type='cancel_order',clicks=1, interval=0.2, duration=0.2,confidence=0.8)
@@ -366,6 +395,8 @@ def get_every_battle():
     """
     Purpose:扫荡战役
     """
+    ## 判断主城状态 
+    return_login_exit()        
     sleep(1)
     search_and_click_image(click_type='enter_battle',clicks=2, interval=0.2, duration=0.2)
     search_and_click_image(click_type='battle_position',clicks=2, interval=0.2, duration=0.2)
@@ -375,17 +406,23 @@ def get_every_battle():
     search_and_click_image(click_type='real_battle_2',clicks=2, interval=0.2, duration=0.2)
     ### 这里进去有两个可能，一个是成功扫荡，一个是没体力了，扫荡不了
     buy_energy_location = image_center_location( get_click_type_path('buy_energy'),confidence=0.8)
-    while buy_energy_location == (None, None):
+    battle_retry = 0  # 🔴 轮次限制，最多循环 4 次
+    while buy_energy_location == (None, None) and battle_retry < 4:
         print("还有体力啦 ，继续干")
         search_and_click_image(click_type='back_to_real_battle_2',clicks=1, interval=0.2, duration=0.2) 
         sleep(1)
         search_and_click_image(click_type='real_battle_2',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
         buy_energy_location = image_center_location( get_click_type_path('buy_energy'),confidence=0.8)
+        battle_retry += 1
+        search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
+
 
     print("进入购买体力界面 - 没体力啦")
     search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
-
+    search_and_click_image(click_type='back_to_real_battle_2',clicks=1, interval=0.2, duration=0.2) 
+    sleep(1)
     search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
     search_and_click_image(click_type='battle_back_space',clicks=1, interval=0.2, duration=0.2)
@@ -407,9 +444,9 @@ if __name__ == "__main__":
     # sleep(10)
     # get_dock_order(TRUE)
     #get_study_art(True,['琴室','棋室','书房','画廊'])
-    # get_every_battle()
+    get_every_battle()
 
-    get_dock_order(True)
+    # get_dock_order(True)
     #print(image_center_location( get_click_type_path('buy_energy'),confidence=0.8))
     # get_study_art(['书房'])
-    
+    # attack_status_check()
