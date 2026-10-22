@@ -144,6 +144,7 @@ def get_click_type_path(click_type: str) -> str | None:
 
         # 开船无资源
         'resource_exhausted': 'chrome_automation_project/diguo/city/resource_exhausted.png',
+        # 图纸用完
         'paper_use_out': 'chrome_automation_project/diguo/city/paper_use_out.png',
         # 取消订单
         'cancel_order': 'chrome_automation_project/diguo/city/cancel_order.png',
@@ -234,6 +235,8 @@ def get_click_type_path(click_type: str) -> str | None:
         'clear_all_battle': 'chrome_automation_project/diguo/battle/clear_all_battle.png',
         'real_battle_1': 'chrome_automation_project/diguo/battle/real_battle_1.png',
         'real_battle_2': 'chrome_automation_project/diguo/battle/real_battle_2.png',
+
+        'battle_hero_page': 'chrome_automation_project/diguo/battle/battle_hero_page.png',
 
         'exit_real_battle': 'chrome_automation_project/diguo/battle/exit_real_battle.png',
         'battle_back_space': 'chrome_automation_project/diguo/battle/battle_back_space.png',

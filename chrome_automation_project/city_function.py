@@ -419,12 +419,24 @@ def get_every_battle():
 
 
     print("进入购买体力界面 - 没体力啦")
+    ## 退出体力购买界面
     search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
+    ## 退出可能存在的返回按钮
     search_and_click_image(click_type='back_to_real_battle_2',clicks=1, interval=0.2, duration=0.2) 
     sleep(1)
-    search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
+    ## 退出扫荡选择上阵英雄界面
+
+    battle_hero_page_location = image_center_location( get_click_type_path('battle_hero_page'),confidence=0.8)
+    while battle_hero_page_location != (None, None):
+        search_and_click_image(click_type='exit_real_battle',clicks=1, interval=0.2, duration=0.2)
+        battle_hero_page_location = image_center_location( get_click_type_path('battle_hero_page'),confidence=0.8)
+        sleep(1)
+    else:
+        print("未扫荡到英雄")
+    search_and_click_image(click_type='exit_real_battle',clicks=1, interval=0.2, duration=0.2)
     sleep(1)
+    ## 退出战役界面
     search_and_click_image(click_type='battle_back_space',clicks=1, interval=0.2, duration=0.2)
     sleep(1)
     return 1

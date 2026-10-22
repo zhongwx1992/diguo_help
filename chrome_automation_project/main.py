@@ -711,7 +711,7 @@ ROLE_CONFIG = {
         },
         'ship': {
             "is_active": True,
-            "ship_interval": 1200,
+            "ship_interval": 23*60,
         },
         'study': {
             "study_active": True,
@@ -726,7 +726,7 @@ ROLE_CONFIG = {
         },
         'ship': {
             "is_active": False,
-            "ship_interval": 1200,
+            "ship_interval": 23*60,
         },
         'study': {
             "study_active": True,
@@ -741,7 +741,7 @@ ROLE_CONFIG = {
         },
         'ship': {
             "is_active": True,
-            "ship_interval": 1200,
+            "ship_interval": 23*60,
         },
         'study': {
             "study_active": True,
@@ -754,7 +754,7 @@ ROLE_CONFIG = {
 if __name__ == '__main__':
 
     # ========== 选择要跑的角色 ==========
-    #active_role = '刷叛军弓兵才艺开船'  
+    # active_role = '刷叛军弓兵才艺开船'  
     active_role = '刷叛军骑兵才艺不开船'
     # active_role = '不刷叛军骑兵才艺开船'
 
