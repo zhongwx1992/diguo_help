@@ -16,3 +16,6 @@ __pycache__/
 # 模型缓存
 .paddlex/
 .paddleocr/
+
+# 私有角色配置（真实用户信息，不提交；示例见 role_config_example.py）
+/chrome_automation_project/role_config.py

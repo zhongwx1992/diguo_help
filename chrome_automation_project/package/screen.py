@@ -213,8 +213,8 @@ def get_click_type_path(click_type: str) -> str | None:
         'free_ad_refresh': 'chrome_automation_project/diguo/reward/library/free_ad_refresh.png',
         'buy_book': 'chrome_automation_project/diguo/reward/library/buy_book.png',
 
-        'pay_honors_8000': 'chrome_automation_project/diguo/reward/library/pay_honors_8000.png',        
-        'pay_honors_13000': 'chrome_automation_project/diguo/reward/library/pay_honors_13000.png',
+        'red_book_bamboo_slip': 'chrome_automation_project/diguo/reward/library/red_book_bamboo_slip.png',        
+        'red_book_debris': 'chrome_automation_project/diguo/reward/library/red_book_debris.png',
 
 
         ## 才艺学习

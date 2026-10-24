@@ -62,10 +62,6 @@ def get_online_reward():
 
 
 
-
-
-
-
 def rebuild_city():
     """
     Purpose: 重建城市
@@ -86,16 +82,35 @@ def attack_status_check():
         print("未被攻击")
         return False
 
+def fix_click_library_red_book_location(click_type):
+    """
+    Purpose: 修复图书馆红书碎片和断简坐标距离
+    """
+    location = image_center_location( get_click_type_path(click_type),confidence=0.8) 
+    if location == (None, None):
+        print(f"未识别到{click_type}")
+        return None
+    else:
+        print(f"识别到{click_type}坐标为 ({location[0]}, {location[1] + 60})")    
+        pyautogui.moveTo(location[0], location[1] + 60)
+        pyautogui.click(clicks=2)
+        sleep(1)
+
+        ### 在这里增加断简数量不足判断
 
 
-def get_free_honors(buy_duanjian=False, buy_hongshu=False):
+        pyautogui.click(x=GAME_CENTER_LOCATION['location'][0] + 300, y=GAME_CENTER_LOCATION['location'][1],clicks=2)
+        sleep(0.2)
+        return (location[0], location[1] + 60)
+
+
+def get_free_honors(buy_bamboo_slip=False, buy_red_book_debris=False):
     """
     Purpose: 获取免费荣誉
 
-    :param buy_duanjian: 是否花费 8000 荣誉购买断简
-    :param buy_hongshu: 是否花费 13000 荣誉购买红书碎片
+    :param red_book_bamboo_slip: 是否花费 8000 荣誉购买断简
+    :param red_book_debris: 是否花费 13000 荣誉购买红书碎片
     """
-
 
     ## 判断主城状态 
     return_login_exit()        
@@ -124,14 +139,11 @@ def get_free_honors(buy_duanjian=False, buy_hongshu=False):
     sleep(1)
     search_and_click_image(click_type='free_get',clicks=1, interval=0.2, duration=0.2)
     sleep(1)
-    if image_center_location( get_click_type_path('pay_honors_8000'),confidence=0.8) != (None, None) and buy_duanjian:
-        search_and_click_image(click_type='pay_honors_8000',clicks=2, interval=0.2, duration=0.2)
-
+    if image_center_location( get_click_type_path('red_book_bamboo_slip'), confidence=0.8) != (None, None) and buy_bamboo_slip:
+        fix_click_library_red_book_location('red_book_bamboo_slip')
         ### 需要增加断简不足情况处理逻辑
-        sleep(1)
-    if image_center_location( get_click_type_path('pay_honors_13000'),confidence=0.8) != (None, None) and buy_hongshu:
-        search_and_click_image(click_type='pay_honors_13000',clicks=2, interval=0.2, duration=0.2)
-        sleep(1)
+    if image_center_location( get_click_type_path('red_book_debris'),confidence=0.8) != (None, None) and buy_red_book_debris:
+        fix_click_library_red_book_location('red_book_debris')
 
     # 增加广告免费刷新逻辑
     if image_center_location( get_click_type_path('free_ad_refresh'),confidence=0.8) != (None, None):
@@ -139,18 +151,16 @@ def get_free_honors(buy_duanjian=False, buy_hongshu=False):
         sleep(1)
         search_and_click_image(click_type='free_get',clicks=2, interval=0.2, duration=0.2)
         sleep(1)
-        if image_center_location( get_click_type_path('pay_honors_8000'),confidence=0.8) != (None, None) and buy_duanjian:
-            search_and_click_image(click_type='pay_honors_8000',clicks=2, interval=0.2, duration=0.2)
-            sleep(1)
-        if image_center_location( get_click_type_path('pay_honors_13000'),confidence=0.8) != (None, None) and buy_hongshu:
-            search_and_click_image(click_type='pay_honors_13000',clicks=2, interval=0.2, duration=0.2)
-            sleep(1)
+        if image_center_location( get_click_type_path('red_book_bamboo_slip'),confidence=0.8) != (None, None) and buy_bamboo_slip:   
+            fix_click_library_red_book_location('red_book_bamboo_slip')
+        if image_center_location( get_click_type_path('red_book_debris'),confidence=0.8) != (None, None) and buy_red_book_debris:
+            fix_click_library_red_book_location('red_book_debris')
 
-
-    search_and_click_image(click_type='back_space',clicks=2, interval=0.2, duration=0.2)
-    sleep(1)
-    search_and_click_image(click_type='back_space',clicks=2, interval=0.2, duration=0.2)
-    sleep(2)
+    back_space_location = image_center_location( get_click_type_path('back_space'),confidence=0.8)
+    while back_space_location != (None, None):
+        search_and_click_image(click_type='back_space',clicks=1, interval=0.2, duration=0.2)
+        back_space_location = image_center_location( get_click_type_path('back_space'),confidence=0.8)
+        sleep(1)
     search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
     return True
 
@@ -373,7 +383,7 @@ def get_dock_order(is_active=False):
             center_x, center_y = GAME_CENTER_LOCATION['location']
             pyautogui.moveTo(center_x,center_y, duration=0.2)
             pyautogui.mouseDown(button='left')
-            pyautogui.dragRel(0, -300, duration=0.5, button='left')
+            pyautogui.dragRel(0, -150, duration=0.5, button='left')
             pyautogui.mouseUp(button='left')
             sleep(1)
             get_order = image_center_location( get_click_type_path('dock_get_order'),confidence=0.8)
@@ -510,6 +520,7 @@ def get_figth_toushiji(direction='north'):
     return 1
 
 
+
 if __name__ == "__main__":
     #search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
     #sleep(1)
@@ -519,9 +530,7 @@ if __name__ == "__main__":
     # sleep(10)
     # get_dock_order(TRUE)
     #get_study_art(True,['琴室','棋室','书房','画廊'])
-    get_free_honors(buy_duanjian=True, buy_hongshu=True)
+    #get_free_honors(buy_bamboo_slip=True, buy_red_book_debris=True)
+    #fix_click_library_red_book_location('red_book_bamboo_slip')
 
-    # get_dock_order(True)
-    #print(image_center_location( get_click_type_path('buy_energy'),confidence=0.8))
-    # get_study_art(['书房'])
-    # attack_status_check()
+    get_dock_order(True)
