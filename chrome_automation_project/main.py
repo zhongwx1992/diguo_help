@@ -8,7 +8,7 @@ import random
 from package.screen import PRIMARY_MONITOR_INFO, GAME_CENTER_LOCATION, get_ingore_region,calculate_distance,image_center_location, search_and_click_image,get_click_type_path
 from package.region import primary_region_to_screen_region
 from change_map import return_to_holy_place,is_in_holy_place
-from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art,get_every_battle
+from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art,get_every_battle,get_strength
 from pynput import keyboard
 from datetime import datetime
 from login_service import login_staus,return_login_exit
@@ -572,7 +572,15 @@ def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室']):
         except Exception as e:
             errors.append(f"才艺学习: {e}")
 
-    # 5. 扫荡战役（始终尝试，轻量）
+    
+    # 5. 领体力（始终尝试，轻量）
+    try:
+        get_strength()
+    except Exception as e:
+        errors.append(f"领体力: {e}")
+
+
+    # 6. 扫荡战役（始终尝试，轻量）
     try:
         get_every_battle()
     except Exception as e:
@@ -725,7 +733,7 @@ ROLE_CONFIG = {
             "num": 4,
         },
         'ship': {
-            "is_active": False,
+            "is_active": True,
             "ship_interval": 23*60,
         },
         'study': {
@@ -752,10 +760,11 @@ ROLE_CONFIG = {
 }
 
 if __name__ == '__main__':
-
+    sleep(10)
+    
     # ========== 选择要跑的角色 ==========
-    # active_role = '刷叛军弓兵才艺开船'  
-    active_role = '刷叛军骑兵才艺不开船'
+    active_role = '刷叛军弓兵才艺开船'  
+    # active_role = '刷叛军骑兵才艺不开船'
     # active_role = '不刷叛军骑兵才艺开船'
 
     if active_role not in ROLE_CONFIG:

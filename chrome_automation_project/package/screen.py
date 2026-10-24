@@ -213,6 +213,10 @@ def get_click_type_path(click_type: str) -> str | None:
         'free_ad_refresh': 'chrome_automation_project/diguo/reward/library/free_ad_refresh.png',
         'buy_book': 'chrome_automation_project/diguo/reward/library/buy_book.png',
 
+        'pay_honors_8000': 'chrome_automation_project/diguo/reward/library/pay_honors_8000.png',        
+        'pay_honors_13000': 'chrome_automation_project/diguo/reward/library/pay_honors_13000.png',
+
+
         ## 才艺学习
         'palace': 'chrome_automation_project/diguo/reward/palace/palace.png',
         'art': 'chrome_automation_project/diguo/reward/palace/art.png',
@@ -242,6 +246,18 @@ def get_click_type_path(click_type: str) -> str | None:
         'battle_back_space': 'chrome_automation_project/diguo/battle/battle_back_space.png',
         'back_to_real_battle_2': 'chrome_automation_project/diguo/battle/back_to_real_battle_2.png',
         'buy_energy': 'chrome_automation_project/diguo/battle/buy_energy.png',
+
+        ### 日常福利
+        'benefit': 'chrome_automation_project/diguo/benefit/benefit.png',
+        'back_space_benefit': 'chrome_automation_project/diguo/benefit/back_space_benefit.png',
+        'strength': 'chrome_automation_project/diguo/benefit/strength.png',
+        'get_free_strength': 'chrome_automation_project/diguo/benefit/get_free_strength.png',
+        ### 打卡美
+        'north': 'chrome_automation_project/diguo/active/kamei/north.png',
+        'east': 'chrome_automation_project/diguo/active/kamei/east.png',
+        'south': 'chrome_automation_project/diguo/active/kamei/south.png',
+        'west': 'chrome_automation_project/diguo/active/kamei/west.png',
+
     }
 
     if click_type not in path_mapping:

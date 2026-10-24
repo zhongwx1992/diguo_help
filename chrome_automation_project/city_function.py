@@ -88,15 +88,15 @@ def attack_status_check():
 
 
 
-def get_free_honors():
+def get_free_honors(buy_duanjian=False, buy_hongshu=False):
     """
     Purpose: 获取免费荣誉
+
+    :param buy_duanjian: 是否花费 8000 荣誉购买断简
+    :param buy_hongshu: 是否花费 13000 荣誉购买红书碎片
     """
-    # 'back_space'
-    # 'book_shop'
-    # 'book_tag'
-    # 'free_get'
-    # 'honors_tag'
+
+
     ## 判断主城状态 
     return_login_exit()        
     search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
@@ -124,12 +124,28 @@ def get_free_honors():
     sleep(1)
     search_and_click_image(click_type='free_get',clicks=1, interval=0.2, duration=0.2)
     sleep(1)
+    if image_center_location( get_click_type_path('pay_honors_8000'),confidence=0.8) != (None, None) and buy_duanjian:
+        search_and_click_image(click_type='pay_honors_8000',clicks=2, interval=0.2, duration=0.2)
+
+        ### 需要增加断简不足情况处理逻辑
+        sleep(1)
+    if image_center_location( get_click_type_path('pay_honors_13000'),confidence=0.8) != (None, None) and buy_hongshu:
+        search_and_click_image(click_type='pay_honors_13000',clicks=2, interval=0.2, duration=0.2)
+        sleep(1)
+
     # 增加广告免费刷新逻辑
     if image_center_location( get_click_type_path('free_ad_refresh'),confidence=0.8) != (None, None):
         search_and_click_image(click_type='free_ad_refresh',clicks=2, interval=0.2, duration=0.2)
         sleep(1)
         search_and_click_image(click_type='free_get',clicks=2, interval=0.2, duration=0.2)
         sleep(1)
+        if image_center_location( get_click_type_path('pay_honors_8000'),confidence=0.8) != (None, None) and buy_duanjian:
+            search_and_click_image(click_type='pay_honors_8000',clicks=2, interval=0.2, duration=0.2)
+            sleep(1)
+        if image_center_location( get_click_type_path('pay_honors_13000'),confidence=0.8) != (None, None) and buy_hongshu:
+            search_and_click_image(click_type='pay_honors_13000',clicks=2, interval=0.2, duration=0.2)
+            sleep(1)
+
 
     search_and_click_image(click_type='back_space',clicks=2, interval=0.2, duration=0.2)
     sleep(1)
@@ -442,9 +458,56 @@ def get_every_battle():
     return 1
     # 成功之后就是退出
 
+def get_strength():
+    """
+    Purpose: 获取日常福利 体力
+    'benefit'
+    'back_space_benefit'
+    'strength'
+    """
+    return_login_exit()
+    search_and_click_image(click_type='to_city',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    rebuild_city()
+
+    search_and_click_image(click_type='benefit',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='strength',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    search_and_click_image(click_type='get_free_strength',clicks=2, interval=0.2, duration=0.2)
+    sleep(1)
+    pyautogui.click(x=GAME_CENTER_LOCATION['location'][0], y=GAME_CENTER_LOCATION['location'][1] ,clicks=2)
+    sleep(1)
+    back_space_benefit_location = image_center_location( get_click_type_path('back_space_benefit'),confidence=0.8)
+    while back_space_benefit_location != (None, None):
+        search_and_click_image(click_type='back_space_benefit',clicks=1, interval=0.2, duration=0.2)
+        sleep(1)
+        back_space_benefit_location = image_center_location( get_click_type_path('back_space_benefit'),confidence=0.8)
+    search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
+
+    return 1
 
 
+def get_market():
+    """
+    Purpose: 获取市场
+    'market'
+    """
 
+    return 1
+    
+
+
+def get_figth_toushiji(direction='north'):
+    """
+    Purpose: 获取战斗任务, 现在的情况是不管输入哪个方向，都是能识别到投石机，但是分不清楚方向
+    
+    """
+    toushiji_location = {'east':(240,250),'west':(260,250),'north':(250,260),'south':(250,240),'center':(250,250)}
+
+    search_and_click_image(click_type=direction,clicks=2, interval=0.2, duration=0.2)
+    
+    return 1
 
 
 if __name__ == "__main__":
@@ -456,7 +519,7 @@ if __name__ == "__main__":
     # sleep(10)
     # get_dock_order(TRUE)
     #get_study_art(True,['琴室','棋室','书房','画廊'])
-    get_every_battle()
+    get_free_honors(buy_duanjian=True, buy_hongshu=True)
 
     # get_dock_order(True)
     #print(image_center_location( get_click_type_path('buy_energy'),confidence=0.8))
