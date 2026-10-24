@@ -26,7 +26,7 @@ ROLE_CONFIG = {
     # 示例角色 1：刷叛军 + 才艺 + 开船
     '刷叛军弓兵才艺开船': {
         'rebel': {
-            "attack_num": 300,            # 目标攻击叛军总数，<=0 表示不打叛军
+            "is_attack_rebel": True,      # 是否开启打叛军
             "send_rebel_list": [28, 29],  # 要打的叛军等级列表
             "num": 2,                     # 参战将领数量
         },
@@ -46,7 +46,7 @@ ROLE_CONFIG = {
     # 示例角色 2：刷叛军 + 才艺 + 不开船
     '刷叛军骑兵才艺不开船': {
         'rebel': {
-            "attack_num": 300,
+            "is_attack_rebel": True,
             "send_rebel_list": [28, 29],
             "num": 4,
         },
@@ -66,7 +66,7 @@ ROLE_CONFIG = {
     # 示例角色 3：不刷叛军 + 才艺 + 开船
     '不刷叛军骑兵才艺开船': {
         'rebel': {
-            "attack_num": 0,              # 0 表示跳过打叛军，直接进入日常任务循环
+            "is_attack_rebel": True,      # 是否开启打叛军
             "send_rebel_list": [29],
             "num": 1,
         },
