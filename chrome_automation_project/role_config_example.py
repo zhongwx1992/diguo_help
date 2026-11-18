@@ -19,6 +19,7 @@
         ship    跑船配置
         study   才艺学习配置
         honors  荣誉购买配置
+        login_info  登录配置（大区号、重新登录间隔、是否自动重新登录）
     运行时会把所有分组展平（flatten）成 main() 的关键字参数。
 """
 
@@ -41,6 +42,11 @@ ROLE_CONFIG = {
         'honors': {
             "buy_bamboo_slip": False,     # 是否花费荣誉购买断简
             "buy_red_book_debris": False, # 是否花费荣誉购买红书碎片
+        },
+        'login_info': {
+            "role_server": 968,           # 大区号，对应 login/severs/{role_server}.png
+            "login_interval": 60 * 10,    # 检测到返回登录后，等待多少秒再重新登录
+            "is_login_again": True,       # 是否自动重新登录（False 则直接退出程序）
         },
     },
     # 示例角色 2：刷叛军 + 才艺 + 不开船

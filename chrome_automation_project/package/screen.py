@@ -166,6 +166,16 @@ def get_click_type_path(click_type: str) -> str | None:
         'server_list': 'chrome_automation_project/diguo/login/server_list.png',
         'h705': 'chrome_automation_project/diguo/login/h705.png',
 
+        'start_page': 'chrome_automation_project/diguo/login/relogin/close_start_page.png',
+        'close_start_page': 'chrome_automation_project/diguo/login/relogin/close_start_page.png',
+        'server_list': 'chrome_automation_project/diguo/login/relogin/server_list.png',
+        'start_game': 'chrome_automation_project/diguo/login/relogin/start_game.png',
+
+        'welcome_page': 'chrome_automation_project/diguo/login/relogin/welcome_page.png',
+
+        'exit_welcome_page': 'chrome_automation_project/diguo/login/relogin/exit_welcome_page.png',
+
+
         ## game help
         'dishu_start_game': 'chrome_automation_project/diguo/game/attack_dishu/star_game.png',
         'dishu_game_over': 'chrome_automation_project/diguo/game/attack_dishu/game_over.png',

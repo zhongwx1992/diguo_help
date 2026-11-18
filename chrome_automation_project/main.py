@@ -11,7 +11,7 @@ from change_map import return_to_holy_place,is_in_holy_place
 from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art,get_every_battle,get_strength,get_login_character_info
 from pynput import keyboard
 from datetime import datetime
-from login_service import login_staus,return_login_exit
+from login_service import login_staus,return_login_exit,set_login_config
 from task_timer import TASK_REBEL_START, TASK_REBEL_FULL, get_last_success, mark_success, print_status
 
 # ========== 加载角色配置（优先私有 role_config.py，缺失则回退示例） ==========
@@ -663,6 +663,13 @@ def main(role_cfg=None):
     buy_bamboo_slip = honors['buy_bamboo_slip']
     buy_red_book_debris = honors['buy_red_book_debris']
 
+    # ---- 登录配置全部来自 role_config.py 的 login_info 分组 ----
+    login_info = cfg.get('login_info')
+    if login_info:
+        set_login_config(**login_info)
+    else:
+        print("⚠️ role_config.py 中该角色缺少 login_info 分组，使用默认登录配置")
+
     global REBEL_ATTACKED_NUMBER, REBEL_ATTACKED_CANCAL_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
 
     # ---- 每次调用都重置全局状态，防止重入时计数残留 ----
@@ -756,7 +763,7 @@ if __name__ == '__main__':
         print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
     else:
         print(f"🎯 切换到角色: {active_role}")
-        for group in ['rebel', 'ship', 'study', 'honors']:
+        for group in ['rebel', 'ship', 'study', 'honors', 'login_info']:
             print(f"{group}: {ROLE_CONFIG[active_role].get(group, {})}")
         main(ROLE_CONFIG[active_role])
 
