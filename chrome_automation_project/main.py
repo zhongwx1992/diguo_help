@@ -8,16 +8,20 @@ import random
 from package.screen import PRIMARY_MONITOR_INFO, GAME_CENTER_LOCATION, get_ingore_region,calculate_distance,image_center_location, search_and_click_image,get_click_type_path
 from package.region import primary_region_to_screen_region
 from change_map import return_to_holy_place,is_in_holy_place
-from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art,get_every_battle,get_strength
+from city_function import get_online_reward,rebuild_main_city,get_dock_order,get_free_honors,get_study_art,get_every_battle,get_strength,get_login_character_info
 from pynput import keyboard
 from datetime import datetime
 from login_service import login_staus,return_login_exit
+from task_timer import TASK_REBEL_START, TASK_REBEL_FULL, get_last_success, mark_success, print_status
 
 # ========== 加载角色配置（优先私有 role_config.py，缺失则回退示例） ==========
 try:
-    from role_config import ROLE_CONFIG, ACTIVE_ROLE
-except ImportError:
-    from role_config_example import ROLE_CONFIG, ACTIVE_ROLE
+    from role_config import ROLE_CONFIG
+except ModuleNotFoundError as e:
+    # 仅当 role_config.py 本身不存在时才回退；其它错误（语法、内部导入失败等）照常抛出
+    if e.name != 'role_config':
+        raise
+    from role_config_example import ROLE_CONFIG
     print("⚠️ 未找到 role_config.py，已加载示例配置 role_config_example.py")
     print("   请复制 role_config_example.py 为 role_config.py 并填写真实配置")
 
@@ -513,7 +517,7 @@ def cycle_attack(send_rebel_list,num):
 
 
 
-def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室'], buy_bamboo_slip=False, buy_red_book_debris=False):
+def _run_daily_tasks(is_active=True, materials='橙', study_active=False, study_type=['琴室'], buy_bamboo_slip=False, buy_red_book_debris=False):
     """
     统一入口：执行所有"日常任务"（跑船 + 在线奖励 + 荣誉 + 才艺学习）
     
@@ -522,16 +526,17 @@ def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室'], 
     领奖励/荣誉始终执行（轻量操作）。
     
     :param is_active: 是否执行跑船
+    :param materials: 跑船使用的材料颜色，可选 '蓝' '紫' '橙' '红'
     :param study_active: 是否执行才艺学习
     :param study_type: 才艺类型列表
     """
-    print(f"【日常任务】开始执行（跑船{'开启' if is_active else '关闭'}，才艺学习{'开启' if study_active else '关闭'}）")
+    print(f"【日常任务】开始执行（跑船{'开启' if is_active else '关闭'}，材料 {materials}，才艺学习{'开启' if study_active else '关闭'}）")
     errors = []
 
     # 1. 跑船（受 is_active 控制）
     if is_active:
         try:
-            get_dock_order(True)
+            get_dock_order(is_active=True, materials=materials)
         except Exception as e:
             errors.append(f"跑船: {e}")
 
@@ -575,12 +580,13 @@ def _run_daily_tasks(is_active=True, study_active=False, study_type=['琴室'], 
         print("【日常任务】✓ 全部完成")
 
 
-def continuous_ship_with_reward(interval=1200, ship_active=True, study_active=False, study_type=['琴室'], last_run_time=None, buy_bamboo_slip=False, buy_red_book_debris=False):
+def continuous_ship_with_reward(interval=1200, ship_active=True, materials='橙', study_active=False, study_type=['琴室'], last_run_time=None, buy_bamboo_slip=False, buy_red_book_debris=False):
     """
     持续日常任务死循环，按 interval 间隔执行
     
     :param interval: 日常任务最小执行间隔秒数
     :param ship_active: 是否执行跑船
+    :param materials: 跑船使用的材料颜色
     :param study_active: 是否执行才艺学习
     :param study_type: 才艺类型列表
     :param last_run_time: 上次日常任务执行时间（datetime），用于对齐节奏
@@ -602,27 +608,61 @@ def continuous_ship_with_reward(interval=1200, ship_active=True, study_active=Fa
 
             # 统一执行日常任务
             print(f"【日常任务循环】{datetime.now().strftime('%H:%M:%S')} 执行...")
-            _run_daily_tasks(is_active=ship_active, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+            _run_daily_tasks(is_active=ship_active, materials=materials, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
 
             print(f"【日常任务循环】等待 {interval}s 后继续下一轮")
             sleep(interval)
     except KeyboardInterrupt:
         print("【日常任务循环】已手动停止 (Ctrl+C)")
+        print_status("程序退出前任务状态")
 
 
-def main(is_attack_rebel=True, send_rebel_list=[26,27], num=4, is_active=False, ship_interval=1200,
-         study_active=False, study_type=['琴室'], buy_bamboo_slip=False, buy_red_book_debris=False):
+# 角色配置默认值（与 role_config.py 的分组结构保持一致）
+DEFAULT_ROLE_CFG = {
+    'rebel':  {'is_attack_rebel': True,  'send_rebel_list': [26, 27], 'num': 4},
+    'ship':   {'is_active': False,       'ship_interval': 1200,      'materials': '橙'},
+    'study':  {'study_active': False,    'study_type': ['琴室']},
+    'honors': {'buy_bamboo_slip': False, 'buy_red_book_debris': False},
+}
+
+
+def _merge_cfg(defaults: dict, override: dict) -> dict:
+    """按分组深合并配置：未提供的分组/字段用默认值补齐。"""
+    merged = {}
+    for group, default_vals in defaults.items():
+        merged[group] = {**default_vals, **(override.get(group) or {})}
+    # 允许 override 里出现 defaults 之外的分组（原样保留）
+    for group, vals in override.items():
+        if group not in merged and isinstance(vals, dict):
+            merged[group] = dict(vals)
+    return merged
+
+
+def main(role_cfg=None):
     """
     打叛军 + 定时跑船 + 在线奖励 + 才艺学习，叛军打满后进入持续跑船+奖励循环
-    
-    :param send_rebel_list: 叛军等级列表
-    :param num: 将领数量
-    :param is_attack_rebel: 是否激活打叛军功能
-    :param is_active: 是否激活跑船功能
-    :param ship_interval: 日常任务最小执行间隔秒数（默认 1200 = 20分钟）
-    :param study_active: 是否执行才艺学习
-    :param study_type: 才艺类型列表
+
+    :param role_cfg: 分组角色配置（同 role_config.py 结构），缺省字段自动用 DEFAULT_ROLE_CFG 补齐
     """
+    cfg = _merge_cfg(DEFAULT_ROLE_CFG, role_cfg or {})
+
+    # ---- 配置解包（后续逻辑只依赖这些局部变量）----
+    rebel = cfg['rebel']
+    ship = cfg['ship']
+    study = cfg['study']
+    honors = cfg['honors']
+
+    is_attack_rebel = rebel['is_attack_rebel']
+    send_rebel_list = rebel['send_rebel_list']
+    num = rebel['num']
+    is_active = ship['is_active']
+    materials = ship['materials']
+    ship_interval = ship['ship_interval']
+    study_active = study['study_active']
+    study_type = study['study_type']
+    buy_bamboo_slip = honors['buy_bamboo_slip']
+    buy_red_book_debris = honors['buy_red_book_debris']
+
     global REBEL_ATTACKED_NUMBER, REBEL_ATTACKED_CANCAL_NUMBER, ATTACKED_LOCATIONS, DRAG_IGNORE_POSITION, DIRECTION_LIST_INDEX
 
     # ---- 每次调用都重置全局状态，防止重入时计数残留 ----
@@ -643,70 +683,80 @@ def main(is_attack_rebel=True, send_rebel_list=[26,27], num=4, is_active=False, 
     try:
         # ---------- 需求3：脚本启动先跑一遍日常任务 ----------
         print("【main】首次启动 → 先执行一次日常任务...")
-        _run_daily_tasks(is_active=is_active, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+        _run_daily_tasks(is_active=is_active, materials=materials, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
         pre_order_time = datetime.now()  # 首次执行后重置定时器起点
 
         # ---------- is_attack_rebel=False 时跳过打叛军，直接进日常任务循环 ----------
         if not is_attack_rebel:
             print(f"【main】不打叛军，直接进入日常任务循环（间隔 {ship_interval}s）")
-            continuous_ship_with_reward(interval=ship_interval, ship_active=is_active, study_active=study_active, study_type=study_type, last_run_time=pre_order_time, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+            continuous_ship_with_reward(interval=ship_interval, ship_active=is_active, materials=materials, study_active=study_active, study_type=study_type, last_run_time=pre_order_time, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
             return
 
-        # ---------- 阶段一：打叛军 + 定时跑船 ----------
-        while REBEL_ATTACKED_CANCAL_NUMBER < 10:
-            return_login_exit()
-            # 判断是否在世界界面
-            if image_center_location(get_click_type_path('to_world')) != (None, None):
-                search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
-                sleep(1.5)
-            # 回圣域
-            if not is_in_holy_place():
-                sleep(1)
-                print("不在圣域，返回中...") 
-                return_to_holy_place(active=True)        
-            # 攻打叛军
-            cycle_attack(send_rebel_list=send_rebel_list, num=num)
-            print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击", REBEL_ATTACKED_NUMBER, "个叛军")
+        # ---------- 打叛军 + 挂机统一大循环（跨天自动回到打叛军） ----------
+        _last_rebel_day = datetime.now().date()  # 记录叛军日期基准，跨天自动刷新计数
 
-            # 定时任务块：距离上次执行 >= ship_interval 才触发（至少间隔）
-            time_diff = datetime.now() - pre_order_time
-            if time_diff.total_seconds() >= ship_interval:
-                print(f"【main】定时任务触发（距上次 {int(time_diff.total_seconds())}s）...")
-                _run_daily_tasks(is_active=is_active, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
-                if is_active:
-                    DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
-                pre_order_time = datetime.now()
+        while True:
+            # 跨天检测：叛军每日刷新，跨天后重置连续取消计数，重新开始打叛军
+            today = datetime.now().date()
+            if today != _last_rebel_day:
+                print(f"【main】检测到跨天（{today}），叛军已刷新，重置连续取消攻击计数")
+                _last_rebel_day = today
+                REBEL_ATTACKED_CANCAL_NUMBER = 0
 
-        # ---------- 阶段二：叛军打满 → 日常任务死循环（挂机） ----------
-        print(f"【main】✓ 连续取消攻击叛军达到阈值，判定已打满，进入日常任务循环（间隔 {ship_interval}s）")
-        continuous_ship_with_reward(interval=ship_interval, ship_active=is_active, study_active=study_active, study_type=study_type, last_run_time=pre_order_time, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+            if REBEL_ATTACKED_CANCAL_NUMBER < 10:
+                # ---------- 阶段一：打叛军 + 定时跑船 ----------
+                # 记录当天叛军开始时间（每天仅一次）
+                rebel_start = get_last_success(TASK_REBEL_START)
+                if rebel_start is None or rebel_start.date() != today:
+                    mark_success(TASK_REBEL_START)
+                return_login_exit()
+                # 判断是否在世界界面
+                if image_center_location(get_click_type_path('to_world')) != (None, None):
+                    search_and_click_image(click_type='to_world', clicks=2, interval=0.2, duration=0.2)
+                    sleep(1.5)
+                # 回圣域
+                if not is_in_holy_place():
+                    sleep(1)
+                    print("不在圣域，返回中...")
+                    return_to_holy_place(active=True)
+                # 攻打叛军
+                cycle_attack(send_rebel_list=send_rebel_list, num=num)
+                print("当前时间:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "已攻击", REBEL_ATTACKED_NUMBER, "个叛军")
+
+                # 定时任务块：距离上次执行 >= ship_interval 才触发（至少间隔）
+                time_diff = datetime.now() - pre_order_time
+                if time_diff.total_seconds() >= ship_interval:
+                    print(f"【main】定时任务触发（距上次 {int(time_diff.total_seconds())}s）...")
+                    _run_daily_tasks(is_active=is_active, materials=materials, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+                    if is_active:
+                        DIRECTION_LIST_INDEX = DIRECTION_LIST_INDEX + 1
+                    pre_order_time = datetime.now()
+            else:
+                # ---------- 阶段二：叛军打满 → 挂机一轮（跨天后自动回到阶段一） ----------
+                # 记录当天叛军打满时间（每天仅一次）
+                rebel_full = get_last_success(TASK_REBEL_FULL)
+                if rebel_full is None or rebel_full.date() != today:
+                    mark_success(TASK_REBEL_FULL)
+                return_login_exit()
+                rebuild_and_back_to_holy_place(active=True)
+                print(f"【main】叛军已打满，挂机中（{datetime.now().strftime('%H:%M:%S')}）...")
+                _run_daily_tasks(is_active=is_active, materials=materials, study_active=study_active, study_type=study_type, buy_bamboo_slip=buy_bamboo_slip, buy_red_book_debris=buy_red_book_debris)
+                print(f"【main】挂机等待 {ship_interval}s 后继续")
+                sleep(ship_interval)
     except KeyboardInterrupt:
         print("【main】已手动停止 (Ctrl+C)")
-
-def _flatten_role_cfg(cfg):
-    """把分组的角色配置展平为 main() 可以直接解包的 dict"""
-    flat = {}
-    for group_key, group_val in cfg.items():
-        if isinstance(group_val, dict):
-            flat.update(group_val)
-        else:
-            flat[group_key] = group_val
-    return flat
-
+        print_status("程序退出前任务状态")
 
 if __name__ == '__main__':
-    #sleep(10)
     
     # ========== 选择要跑的角色 ==========
-    #active_role = ACTIVE_ROLE  
-    #active_role = '刷叛军弓兵才艺开船买断简买碎片'
-    active_role = '不刷叛军骑兵才艺开船买断简买碎片'
+    active_role = get_login_character_info()
+
     if active_role not in ROLE_CONFIG:
         print(f"❌ 角色 '{active_role}' 不存在，可选: {list(ROLE_CONFIG.keys())}")
     else:
-        cfg = _flatten_role_cfg(ROLE_CONFIG[active_role])
         print(f"🎯 切换到角色: {active_role}")
-        for group in ['rebel', 'ship', 'study']:
+        for group in ['rebel', 'ship', 'study', 'honors']:
             print(f"{group}: {ROLE_CONFIG[active_role].get(group, {})}")
-        main(**cfg)
+        main(ROLE_CONFIG[active_role])
 

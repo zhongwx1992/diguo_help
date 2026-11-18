@@ -1,0 +1,29 @@
+[ WARN:0@4.065] global loadsave.cpp:241 findDecoder imread_('chrome_automation_project/diguo/role/领主信息页面.png'): can't open/read file: check file path/integrity
+Traceback (most recent call last):
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/chrome_automation_project/main.py", line 753, in <module>
+    active_role = get_login_character_info()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/chrome_automation_project/city_function.py", line 550, in get_login_character_info
+    role_info_location = image_center_location( get_click_type_path('领主信息页面'),confidence=0.8)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/chrome_automation_project/package/screen.py", line 323, in image_center_location
+    location = locateOnScreen(image_path, confidence=confidence,region=region)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyautogui/__init__.py", line 172, in wrapper
+    return wrappedFunction(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyautogui/__init__.py", line 210, in locateOnScreen
+    return pyscreeze.locateOnScreen(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyscreeze/__init__.py", line 405, in locateOnScreen
+    retVal = locate(image, screenshotIm, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyscreeze/__init__.py", line 383, in locate
+    points = tuple(locateAll(needleImage, haystackImage, **kwargs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyscreeze/__init__.py", line 231, in _locateAll_opencv
+    needleImage = _load_cv2(needleImage, grayscale)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/zhongwenxin/Documents/git_zhong/diguo_help/diguo/lib/python3.11/site-packages/pyscreeze/__init__.py", line 193, in _load_cv2
+    raise IOError(
+OSError: Failed to read chrome_automation_project/diguo/role/领主信息页面.png because file is missing, has improper permissions, or is an unsupported or invalid format

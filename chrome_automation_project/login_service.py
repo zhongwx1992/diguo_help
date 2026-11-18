@@ -2,6 +2,7 @@ import sys
 from time import sleep
 import pyautogui
 from package.screen import search_and_click_image,image_center_location,get_click_type_path,GAME_CENTER_LOCATION
+from task_timer import print_status
 
 
 def login_staus():
@@ -27,6 +28,7 @@ def return_login_exit():
     return_to_login_location = image_center_location(return_to_login_path, confidence=0.8)
     if return_to_login_location != (None, None):
         print("检测到返回登录界面，程序退出")
+        print_status("程序退出前任务状态")
         sys.exit(0)
     
 

@@ -119,7 +119,7 @@ def ocr_interactive():
 
 # ---------- 游戏专用识别（区域坐标已标定）----------
 
-def make_region(x1: int, y1: int, x2: int, y2: int, name: str = "region") -> tuple[int, int, int, int]:
+def make_region(x1: int, y1: int, x2: int, y2: int, name: str = "region", verbose: bool = True) -> tuple[int, int, int, int]:
     """
     通过两个对角点坐标标定识别区域
 
@@ -130,11 +130,13 @@ def make_region(x1: int, y1: int, x2: int, y2: int, name: str = "region") -> tup
     :param x2: 第二个点 x
     :param y2: 第二个点 y
     :param name: 区域名称（仅日志用）
+    :param verbose: 是否打印标定日志（默认 True）；模块加载时批量定义区域传 False 避免刷屏
     :return: (x, y, w, h)
     """
     x, y = min(x1, x2), min(y1, y2)
     w, h = abs(x2 - x1), abs(y2 - y1)
-    print(f"【{name}】 区域标定: ({x1},{y1}) → ({x2},{y2}) → x={x}, y={y}, w={w}, h={h}")
+    if verbose:
+        print(f"【{name}】 区域标定: ({x1},{y1}) → ({x2},{y2}) → x={x}, y={y}, w={w}, h={h}")
     return (x, y, w, h)
 
 
@@ -144,6 +146,7 @@ def make_region_from_four_corners(
     tr: tuple[int, int],
     br: tuple[int, int],
     name: str = "region",
+    verbose: bool = True,
 ) -> tuple[int, int, int, int]:
     """
     通过四个角点坐标标定识别区域
@@ -153,14 +156,35 @@ def make_region_from_four_corners(
     :param tr: 右上角 (x, y)
     :param br: 右下角 (x, y)
     :param name: 区域名称（仅日志用）
+    :param verbose: 是否打印标定日志（默认 True）
     :return: (x, y, w, h)
     """
     xs = [tl[0], bl[0], tr[0], br[0]]
     ys = [tl[1], bl[1], tr[1], br[1]]
     x, y = min(xs), min(ys)
     w, h = max(xs) - min(xs), max(ys) - min(ys)
-    print(f"【{name}】 区域标定: x={x}, y={y}, w={w}, h={h}")
+    if verbose:
+        print(f"【{name}】 区域标定: x={x}, y={y}, w={w}, h={h}")
     return (x, y, w, h)
+
+
+# ---------- 区域集中定义 ----------
+# 所有 OCR 识别区域集中放在这里，一次标定、一处修改、全局复用。
+# 值均为 (x, y, w, h) 元组。
+# 注意：坐标是当前窗口位置+当前分辨率下标定的，窗口拖动或分辨率变化后要重新标定。
+
+_REGIONS: dict[str, tuple[int, int, int, int]] = {
+    # 角色信息面板（角色名、阵营、服务器、当前服务器、游戏ID、爵位）
+    # 标定方式：ocr_interactive 取 (518,710) → (833,770)
+    'character': make_region(518, 710, 518 + 315, 710 + 60, name="角色信息", verbose=False),
+
+    # 今日已剿灭叛军计数（"今日已剿灭叛军 X/Y"）
+    # 标定方式：make_region_from_four_corners 取四个角
+    'rebel_count': make_region_from_four_corners(
+        tl=(624, 612), bl=(623, 630), tr=(728, 612), br=(728, 630),
+        name="今日已剿灭叛军", verbose=False,
+    ),
+}
 
 
 
@@ -171,12 +195,7 @@ def get_today_rebel_count() -> tuple[int | None, int | None]:
     识别游戏 UI 上"今日已剿灭叛军: X/Y"的区域
     :return: (已剿灭数, 总上限) 如 (300, 300)；识别失败返回 (None, None)
     """
-    REBEL_COUNT_REGION = make_region_from_four_corners(
-        tl=(624, 612), bl=(623, 630), tr=(728, 612), br=(728, 630),
-        name="今日已剿灭叛军",
-    )
-
-    x, y, w, h = REBEL_COUNT_REGION
+    x, y, w, h = _REGIONS['rebel_count']
     results = ocr_region(x, y, w, h)
     if not results:
         return None, None
@@ -199,6 +218,90 @@ def get_today_rebel_count() -> tuple[int | None, int | None]:
     # 兜底：只找第一个数字
     num = extract_number(text)
     return num, None
+
+
+def get_character_info() -> dict:
+    """
+    识别角色信息面板（角色名、阵营、服务器、当前服务器、游戏ID、爵位）
+
+    区域已通过 ocr_interactive 标定：x=518, y=710, w=315, h=60
+    :return: 包含以下键的字典，未能识别的字段值为 None
+        {
+            'role_name': 'Thor',
+            'camp': '巴比伦',
+            'server': 'H968危机四伏',
+            'current_server': 'H962 英雄无极',
+            'game_id': '209681006402',
+            'title': '摄政王',
+        }
+    """
+    x, y, w, h = _REGIONS['character']
+    results = ocr_region(x, y, w, h)
+
+    info = {
+        'role_name': None,
+        'camp': None,
+        'server': None,
+        'current_server': None,
+        'game_id': None,
+        'title': None,
+    }
+
+    if not results:
+        return info
+
+    def _box_centers(box):
+        pts = np.array(box).reshape(-1, 2)
+        return pts[:, 0].mean(), pts[:, 1].mean()
+
+    def _find_keyword_block(keyword):
+        for r in results:
+            if keyword in r['text']:
+                return r
+        return None
+
+    def _build_full_line(anchor_block):
+        """以锚块的 y 为基准，把同一行所有块按 x 排序拼成完整行文本。"""
+        _, anchor_y = _box_centers(anchor_block['box'])
+        siblings = []
+        for r in results:
+            _, cy = _box_centers(r['box'])
+            if abs(cy - anchor_y) <= 6:
+                cx, _ = _box_centers(r['box'])
+                siblings.append((cx, r['text']))
+        siblings.sort(key=lambda p: p[0])
+        return " ".join(t for _, t in siblings)
+
+    # 字段定义：(key, 关键词, 正则)
+    # 注意 "当前服务器" 必须排在 "服务器" 前面
+    # 正则用了负向前瞻 (?=\s*\S+\s*[:：]|$)：值到遇到下一个"词+冒号"或行尾就停，避免吞掉同行其他字段
+    _RE_ROLE_NAME      = re.compile(r'角色名\s*[:：]\s*([^:：]+?)(?=\s*\S+\s*[:：]|$)')
+    _RE_CAMP           = re.compile(r'阵营\s*[:：]\s*([^:：]+?)(?=\s*\S+\s*[:：]|$)')
+    _RE_CURRENT_SERVER = re.compile(r'当前服务器\s*[:：]\s*([^:：]+?)(?=\s*\S+\s*[:：]|$)')
+    _RE_SERVER         = re.compile(r'(?<!当前)服务器\s*[:：]\s*([^:：]+?)(?=\s*\S+\s*[:：]|$)')
+    _RE_GAME_ID        = re.compile(r'游戏ID\s*[:：]\s*(\d+)')
+    _RE_TITLE          = re.compile(r'爵位\s*[:：]\s*([^:：]+?)(?=\s*\S+\s*[:：]|$)')
+
+    fields = [
+        ('role_name',      '角色名',      _RE_ROLE_NAME),
+        ('camp',           '阵营',        _RE_CAMP),
+        ('current_server', '当前服务器',   _RE_CURRENT_SERVER),
+        ('server',         '服务器',      _RE_SERVER),
+        ('game_id',        '游戏ID',      _RE_GAME_ID),
+        ('title',          '爵位',        _RE_TITLE),
+    ]
+
+    for key, keyword, pattern in fields:
+        anchor = _find_keyword_block(keyword)
+        if anchor is None:
+            continue
+        full_line = _build_full_line(anchor)
+        m = pattern.search(full_line)
+        if m:
+            info[key] = re.sub(r'\s+', ' ', m.group(1)).strip()
+
+    print('识别结果:', info)
+    return info
 
 
 # ---------- 工具函数 ----------
@@ -245,7 +348,10 @@ def find_all_text(keyword: str, results: list[dict]) -> list[dict]:
 if __name__ == '__main__':
     # 快速测试：python -m package.ocr_util
     print("选一个区域测试一下...")
-    # ocr_interactive()
+    ocr_interactive()
+    # info = get_character_info()
+    # print(info) 
 
-    a = get_today_rebel_count()
-    print("识别结果:", a)
+
+    # a = get_today_rebel_count()
+    # print("识别结果:", a)

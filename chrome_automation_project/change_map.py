@@ -4,6 +4,7 @@ import pyautogui
 from package.region import primary_region_to_screen_region
 from package.screen import PRIMARY_MONITOR_INFO,search_and_click_image,get_click_type_path
 from login_service import return_login_exit
+from city_function import rebuild_main_city
 
 def is_in_holy_place():
     """
@@ -12,7 +13,7 @@ def is_in_holy_place():
     """
     holy_place_region = (620, 230, 120, 50)
     holy_place_path = get_click_type_path( 'holy_place')
-
+    
     try:
         is_in_holy_place = pyautogui.locateOnScreen(
             holy_place_path, 
@@ -61,7 +62,7 @@ def return_to_holy_place(active=True):
     #search_and_click_image(click_type='to_world',clicks=2, interval=0.2, duration=0.2)
     #sleep(2)
     #print("是否在圣域：", is_in_holy_place())
-    
+    rebuild_main_city()
     # 点击回城按钮
     search_and_click_image(click_type='back_home', clicks=1, interval=0.2, duration=0.2)
     while not is_in_holy_place() and active:  # 直接使用布尔值判断

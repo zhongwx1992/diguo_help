@@ -150,6 +150,12 @@ def get_click_type_path(click_type: str) -> str | None:
         'cancel_order': 'chrome_automation_project/diguo/city/cancel_order.png',
         # 退出订单
         'exit_order': 'chrome_automation_project/diguo/city/exit_order.png',
+
+        '一键放置': 'chrome_automation_project/diguo/city/一键放置.png',
+        '随机橙色材料': 'chrome_automation_project/diguo/city/随机橙色材料.png',
+
+
+
         # 登录操作
         'token_expired': 'chrome_automation_project/diguo/login/token_expired.png',
         'return_to_login': 'chrome_automation_project/diguo/login/return_to_login.png',
@@ -252,11 +258,48 @@ def get_click_type_path(click_type: str) -> str | None:
         'back_space_benefit': 'chrome_automation_project/diguo/benefit/back_space_benefit.png',
         'strength': 'chrome_automation_project/diguo/benefit/strength.png',
         'get_free_strength': 'chrome_automation_project/diguo/benefit/get_free_strength.png',
+
+        'level_gift': 'chrome_automation_project/diguo/benefit/level_gift.png',
         ### 打卡美
         'north': 'chrome_automation_project/diguo/active/kamei/north.png',
         'east': 'chrome_automation_project/diguo/active/kamei/east.png',
         'south': 'chrome_automation_project/diguo/active/kamei/south.png',
         'west': 'chrome_automation_project/diguo/active/kamei/west.png',
+
+        ### 流浪商人市场
+
+        'market': 'chrome_automation_project/diguo/market/market.png',
+        'business_man': 'chrome_automation_project/diguo/market/business_man.png',
+        'close_time': 'chrome_automation_project/diguo/market/close_time.png',
+        'back_space_market': 'chrome_automation_project/diguo/market/back_space_market.png',
+
+        'market_page': 'chrome_automation_project/diguo/market/market_page.png',
+        'confirm_exchange_page': 'chrome_automation_project/diguo/market/confirm_exchange_page.png',
+        'confirm_purchase': 'chrome_automation_project/diguo/market/confirm_purchase.png',
+        ## diamond
+        'get_red_equipment': 'chrome_automation_project/diguo/market/buy_stuff/pay_diamond/get_red_equipment.png',
+        ## food
+        'get_wood_100w': 'chrome_automation_project/diguo/market/buy_stuff/pay_food/get_wood_100w.png',
+        'get_stone_100w': 'chrome_automation_project/diguo/market/buy_stuff/pay_food/get_stone_100w.png',
+        ## wood
+        'get_good_100w': 'chrome_automation_project/diguo/market/buy_stuff/pay_wood/get_good_100w.png',
+
+        ## stone
+        'get_mythril_5k': 'chrome_automation_project/diguo/market/buy_stuff/pay_stone/get_mythril_5k.png',
+        'get_mythril_48k': 'chrome_automation_project/diguo/market/buy_stuff/pay_stone/get_mythril_48k.png',
+        'get_speed_5m': 'chrome_automation_project/diguo/market/buy_stuff/pay_stone/get_speed_5m.png',
+
+
+        'refresh_diamond_15': 'chrome_automation_project/diguo/market/refresh_diamond_15.png',
+        'refresh_free': 'chrome_automation_project/diguo/market/refresh_free.png',
+        'shoper': 'chrome_automation_project/diguo/market/shoper.png',
+        'confirm_pay_15_diamond_page': 'chrome_automation_project/diguo/market/confirm_pay_15_diamond_page.png',
+        'confirm_pay_15_diamond': 'chrome_automation_project/diguo/market/confirm_pay_15_diamond.png',
+
+        ### 登录角色信息
+
+        '领主信息页面': 'chrome_automation_project/diguo/role/领主信息页面.png',
+        'main_back_space': 'chrome_automation_project/diguo/back_space.png',
 
     }
 
@@ -273,6 +316,8 @@ def image_center_location(image_path:str,region=None,confidence=0.8):
     :return: (x, y) 主显示器坐标系下的中心坐标
     :region: (x, y, width, height) 主显示器区域, 注意输入的是主显示器区域，而不是屏幕区域，所以这里需要转换一下
     """
+    if image_path is None:
+        return None, None
     primary = PRIMARY_MONITOR_INFO
     try:
         location = locateOnScreen(image_path, confidence=confidence,region=region)
@@ -335,6 +380,8 @@ def image_center_location_all(image_path:str,region=None,confidence=0.8,cluster=
     :note: 返回坐标**有序**，按 pyautogui 扫描顺序排列（屏幕从上到下、从左到右，行优先）
            聚类后仍保持该顺序（每个簇的首个点决定簇的排名位置）
     """
+    if image_path is None:
+        return None, None
     result_location = []
     primary = PRIMARY_MONITOR_INFO
     try:
