@@ -447,25 +447,19 @@ def get_every_battle():
 
     print("进入购买体力界面 - 没体力啦")
     ## 退出体力购买界面
-    search_and_click_image(click_type='exit_real_battle',clicks=2, interval=0.2, duration=0.2)
-    sleep(1)
-    ## 退出可能存在的返回按钮
-    search_and_click_image(click_type='back_to_real_battle_2',clicks=1, interval=0.2, duration=0.2) 
-    sleep(1)
-    ## 退出扫荡选择上阵英雄界面
 
-    battle_hero_page_location = image_center_location( get_click_type_path('battle_hero_page'),confidence=0.8)
-    while battle_hero_page_location != (None, None):
-        search_and_click_image(click_type='exit_real_battle',clicks=1, interval=0.2, duration=0.2)
-        battle_hero_page_location = image_center_location( get_click_type_path('battle_hero_page'),confidence=0.8)
-        sleep(1)
-    else:
-        print("未扫荡到英雄")
-    search_and_click_image(click_type='exit_real_battle',clicks=1, interval=0.2, duration=0.2)
-    sleep(1)
-    ## 退出战役界面
-    search_and_click_image(click_type='battle_back_space',clicks=1, interval=0.2, duration=0.2)
-    sleep(1)
+    exit_real_battle_location = image_center_location( get_click_type_path('exit_real_battle'),confidence=0.8)
+    while exit_real_battle_location != (None, None):
+        pyautogui.click(exit_real_battle_location[0], exit_real_battle_location[1], duration=0.2)
+        exit_real_battle_location = image_center_location( get_click_type_path('exit_real_battle'),confidence=0.8)
+        sleep(0.5)
+
+    battle_back_space_location = image_center_location( get_click_type_path('battle_back_space'),confidence=0.8)
+    while battle_back_space_location != (None, None):
+        pyautogui.click(battle_back_space_location[0], battle_back_space_location[1], duration=0.2)
+        battle_back_space_location = image_center_location( get_click_type_path('battle_back_space'),confidence=0.8)
+        sleep(0.5)
+
     if swept:
         mark_success(TASK_BATTLE)
         return 1
@@ -749,4 +743,4 @@ if __name__ == "__main__":
     #get_strength()
     
 
-    get_login_character_info()
+    get_every_battle()
